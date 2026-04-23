@@ -1247,37 +1247,257 @@ teams[fi[<span class="num">0</span>].id] = (winners[sf[<span class="num">0</span
 
 <!-- ════════════════════════════════════════════════════════════ -->
 <section id="terceros-algo">
-<h2>Asignación de mejores terceros — <code>core/terceros.py</code></h2>
+<h2>Mejores terceros — cómo funciona todo el sistema</h2>
+<p>Esta es la parte más compleja del proyecto. Dos archivos trabajan juntos: <code>core/terceros.py</code> (lógica) y <code>core/terceros_tabla.py</code> (datos). Aquí se explica todo desde cero.</p>
 
-<h3>asignar_terceros(grupos_8) → dict{partido_num: letra_grupo}</h3>
-<p>Recibe un frozenset con las letras de los 8 grupos cuyos terceros clasifican (ej: <code>{'A','C','D','F','G','H','I','J'}</code>). Retorna un dict que mapea número de partido R32 → letra del grupo del tercer lugar que juega ahí.</p>
+<h3>El problema que resuelve</h3>
+<p>En el Mundial 2026 hay 12 grupos. Cada grupo produce un equipo en <strong>tercer lugar</strong>. De esos 12 terceros, solo <strong>8 clasifican</strong> a la Ronda de 32. Ahora bien: ¿en qué partido R32 juega cada tercero? No puede ser cualquier partido. FIFA tiene una restricción: cada slot de tercer lugar solo acepta equipos de ciertos grupos. Eso da 495 combinaciones posibles (C(12,8) = 495), y para cada una FIFA tiene una asignación exacta.</p>
 
-<h3>Flujo de búsqueda</h3>
-<ol>
-  <li>Convierte <code>grupos_8</code> a una clave canonizada (tuple ordenada).</li>
-  <li>Busca en <code>TERCEROS_TABLA</code> (dict en <code>terceros_tabla.py</code>) — 495 combinaciones precargadas.</li>
-  <li>Si no encuentra (combinación no cubierta por la tabla), corre el solver de backtracking.</li>
-</ol>
+<h3>Los 8 slots y sus grupos elegibles (dato oficial FIFA)</h3>
+<p>Estos constraints están en el Reglamento FIFA 2026 Anexo C y son la base de todo el sistema. Cada número es el partido de la Ronda de 32:</p>
 
-<h3>Solver de backtracking</h3>
-<p>Intenta asignar cada tercero a un slot compatible (donde el grupo del equipo está en la lista de grupos aceptados del slot). Recorre los slots en orden e intenta cada candidato; si llega a un estado imposible, retrocede. Garantiza solución válida si existe.</p>
+<table class="sm">
+  <tr><th>Partido R32</th><th>Enfrenta al ganador de…</th><th>El 3ro debe venir de…</th></tr>
+  <tr><td><code>74</code></td><td>Grupo E</td><td>A, B, C, D o F</td></tr>
+  <tr><td><code>77</code></td><td>Grupo I</td><td>C, D, F, G o H</td></tr>
+  <tr><td><code>79</code></td><td>Grupo A</td><td>C, E, F, H o I</td></tr>
+  <tr><td><code>80</code></td><td>Grupo L</td><td>E, H, I, J o K</td></tr>
+  <tr><td><code>81</code></td><td>Grupo D</td><td>B, E, F, I o J</td></tr>
+  <tr><td><code>82</code></td><td>Grupo G</td><td>A, E, H, I o J</td></tr>
+  <tr><td><code>85</code></td><td>Grupo B</td><td>E, F, G, I o J</td></tr>
+  <tr><td><code>87</code></td><td>Grupo K</td><td>D, E, I, J o L</td></tr>
+</table>
 
-<pre><code><span class="cm"># Slots y sus grupos aceptados</span>
-SLOTS = {
-    <span class="num">74</span>: {<span class="str">'A'</span>,<span class="str">'B'</span>,<span class="str">'C'</span>,<span class="str">'D'</span>,<span class="str">'F'</span>},
-    <span class="num">77</span>: {<span class="str">'C'</span>,<span class="str">'D'</span>,<span class="str">'F'</span>,<span class="str">'G'</span>,<span class="str">'H'</span>},
-    ...
+<p>En el código esto es el diccionario <code>SLOTS_ELEGIBLES</code> en <code>terceros.py</code>:</p>
+<pre><code><span class="cm"># core/terceros.py</span>
+SLOTS_ELEGIBLES = {
+    <span class="num">74</span>: {<span class="str">'A'</span>, <span class="str">'B'</span>, <span class="str">'C'</span>, <span class="str">'D'</span>, <span class="str">'F'</span>},
+    <span class="num">77</span>: {<span class="str">'C'</span>, <span class="str">'D'</span>, <span class="str">'F'</span>, <span class="str">'G'</span>, <span class="str">'H'</span>},
+    <span class="num">79</span>: {<span class="str">'C'</span>, <span class="str">'E'</span>, <span class="str">'F'</span>, <span class="str">'H'</span>, <span class="str">'I'</span>},
+    <span class="num">80</span>: {<span class="str">'E'</span>, <span class="str">'H'</span>, <span class="str">'I'</span>, <span class="str">'J'</span>, <span class="str">'K'</span>},
+    <span class="num">81</span>: {<span class="str">'B'</span>, <span class="str">'E'</span>, <span class="str">'F'</span>, <span class="str">'I'</span>, <span class="str">'J'</span>},
+    <span class="num">82</span>: {<span class="str">'A'</span>, <span class="str">'E'</span>, <span class="str">'H'</span>, <span class="str">'I'</span>, <span class="str">'J'</span>},
+    <span class="num">85</span>: {<span class="str">'E'</span>, <span class="str">'F'</span>, <span class="str">'G'</span>, <span class="str">'I'</span>, <span class="str">'J'</span>},
+    <span class="num">87</span>: {<span class="str">'D'</span>, <span class="str">'E'</span>, <span class="str">'I'</span>, <span class="str">'J'</span>, <span class="str">'L'</span>},
+}</code></pre>
+
+<h3>Los tipos de datos involucrados</h3>
+<table class="sm">
+  <tr><th>Nombre</th><th>Tipo Python</th><th>Ejemplo concreto</th><th>Para qué sirve</th></tr>
+  <tr>
+    <td><code>grupos_clasificados</code></td>
+    <td><code>set[str]</code></td>
+    <td><code>{'E','F','G','H','I','J','K','L'}</code></td>
+    <td>Entrada: las 8 letras de grupo cuyos terceros clasificaron</td>
+  </tr>
+  <tr>
+    <td>Clave de <code>COMBINACIONES</code></td>
+    <td><code>frozenset[str]</code></td>
+    <td><code>frozenset('EFGHIJKL')</code></td>
+    <td>Versión inmutable y hashable del set, usable como clave de diccionario</td>
+  </tr>
+  <tr>
+    <td>Valor de <code>COMBINACIONES</code></td>
+    <td><code>dict[int, str]</code></td>
+    <td><code>{74:'F', 77:'G', 79:'E', 80:'K', 81:'I', 82:'H', 85:'J', 87:'L'}</code></td>
+    <td>La asignación: qué tercer lugar (letra del grupo) va a cada partido</td>
+  </tr>
+  <tr>
+    <td><code>SLOTS_ELEGIBLES</code></td>
+    <td><code>dict[int, set[str]]</code></td>
+    <td><code>{74: {'A','B','C','D','F'}, ...}</code></td>
+    <td>Los grupos que pueden ocupar cada slot. Constraint oficial FIFA.</td>
+  </tr>
+  <tr>
+    <td>Retorno de <code>asignar_terceros()</code></td>
+    <td><code>dict[int, str]</code></td>
+    <td><code>{74:'F', 77:'G', 79:'E', ...}</code></td>
+    <td>Asignación final: partido_numero → letra_del_grupo_del_tercero</td>
+  </tr>
+</table>
+
+<h3>¿Por qué frozenset y no set normal?</h3>
+<p>Los diccionarios en Python requieren que sus claves sean <strong>hashables</strong> (inmutables). Un <code>set</code> normal es mutable — su contenido puede cambiar — por lo que Python no puede calcularle un hash estable y no puede usarse como clave. Un <code>frozenset</code> es exactamente igual que un set pero <strong>congelado</strong>: no puede cambiar, tiene hash fijo, y puede ser clave de diccionario.</p>
+
+<pre><code><span class="cm"># Esto falla — set es mutable, no hashable:</span>
+d = { {<span class="str">'A'</span>,<span class="str">'B'</span>,<span class="str">'C'</span>}: <span class="str">'valor'</span> }
+<span class="cm"># TypeError: unhashable type: 'set'</span>
+
+<span class="cm"># Esto funciona — frozenset es inmutable:</span>
+d = { frozenset(<span class="str">'ABC'</span>): <span class="str">'valor'</span> }  <span class="cm"># OK</span>
+
+<span class="cm"># Además, frozenset ignora el orden — estas tres claves son IGUALES:</span>
+frozenset(<span class="str">'ABCDEFGH'</span>) == frozenset(<span class="str">'HGFEDCBA'</span>) == frozenset([<span class="str">'A'</span>,<span class="str">'B'</span>,<span class="str">'C'</span>,<span class="str">'D'</span>,<span class="str">'E'</span>,<span class="str">'F'</span>,<span class="str">'G'</span>,<span class="str">'H'</span>])
+<span class="cm"># True — el orden no importa, solo los elementos</span></code></pre>
+
+<p>Esto es clave: no importa en qué orden lleguen los 8 grupos, el <code>frozenset</code> siempre produce la misma clave, y la búsqueda en el diccionario es O(1) — instantánea sin importar cuántas combinaciones tenga la tabla.</p>
+
+<h3>La tabla de 495 combinaciones — <code>core/terceros_tabla.py</code></h3>
+<p>Este archivo contiene el diccionario <code>COMBINACIONES</code> con las 495 entradas. Fue generado programáticamente con el solver de backtracking aplicado a cada una de las C(12,8) = 495 combinaciones posibles de 8 grupos, garantizando que todas respetan los <code>SLOTS_ELEGIBLES</code> oficiales de FIFA.</p>
+
+<pre><code><span class="cm"># core/terceros_tabla.py (extracto — 495 entradas en total)</span>
+COMBINACIONES = {
+    frozenset(<span class="str">'ABCDEFGH'</span>): {<span class="num">74</span>:<span class="str">'A'</span>, <span class="num">77</span>:<span class="str">'C'</span>, <span class="num">79</span>:<span class="str">'F'</span>, <span class="num">80</span>:<span class="str">'E'</span>, <span class="num">81</span>:<span class="str">'B'</span>, <span class="num">82</span>:<span class="str">'H'</span>, <span class="num">85</span>:<span class="str">'G'</span>, <span class="num">87</span>:<span class="str">'D'</span>},
+    frozenset(<span class="str">'ABCDEFGI'</span>): {<span class="num">74</span>:<span class="str">'A'</span>, <span class="num">77</span>:<span class="str">'C'</span>, <span class="num">79</span>:<span class="str">'F'</span>, <span class="num">80</span>:<span class="str">'E'</span>, <span class="num">81</span>:<span class="str">'B'</span>, <span class="num">82</span>:<span class="str">'I'</span>, <span class="num">85</span>:<span class="str">'G'</span>, <span class="num">87</span>:<span class="str">'D'</span>},
+    frozenset(<span class="str">'EFGHIJKL'</span>): {<span class="num">74</span>:<span class="str">'F'</span>, <span class="num">77</span>:<span class="str">'G'</span>, <span class="num">79</span>:<span class="str">'E'</span>, <span class="num">80</span>:<span class="str">'K'</span>, <span class="num">81</span>:<span class="str">'I'</span>, <span class="num">82</span>:<span class="str">'H'</span>, <span class="num">85</span>:<span class="str">'J'</span>, <span class="num">87</span>:<span class="str">'L'</span>},
+    <span class="cm">... (495 entradas totales)</span>
+}</code></pre>
+
+<p>Para leer una entrada: la clave <code>frozenset('EFGHIJKL')</code> representa el escenario donde los grupos E, F, G, H, I, J, K y L tienen sus terceros clasificados. El valor dice: el 3ro del grupo F juega en el partido 74, el 3ro de G en el 77, el 3ro de E en el 79, etc.</p>
+
+<h3>La función principal — <code>asignar_terceros()</code></h3>
+<pre><code><span class="cm"># core/terceros.py</span>
+<span class="kw">def</span> <span class="fn">asignar_terceros</span>(grupos_clasificados: set) -> dict:
+    clave = frozenset(grupos_clasificados)   <span class="cm"># convierte set → frozenset (hashable)</span>
+    <span class="kw">if</span> clave <span class="kw">in</span> COMBINACIONES:
+        <span class="kw">return</span> dict(COMBINACIONES[clave])   <span class="cm"># búsqueda O(1) — devuelve copia</span>
+    <span class="kw">return</span> _resolver_con_backtracking(sorted(grupos_clasificados))  <span class="cm"># fallback</span></code></pre>
+
+<p>Paso a paso con un ejemplo real: supón que los terceros de grupos E, F, G, H, I, J, K, L clasificaron.</p>
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0;">
+  <div style="border:2px solid var(--verde);border-radius:10px;padding:16px;background:#f0faf4;">
+    <div style="font-weight:800;color:var(--verde);font-size:.8rem;text-transform:uppercase;margin-bottom:8px;">Paso 1 — Entrada</div>
+    <code style="font-size:.83rem;">grupos = {'E','F','G','H','I','J','K','L'}</code>
+    <p style="font-size:.82rem;margin-top:8px;margin-bottom:0;color:#444;">Un set normal con las 8 letras. Viene de <code>bracket.py</code>.</p>
+  </div>
+  <div style="border:2px solid #0d6efd;border-radius:10px;padding:16px;background:#f0f4ff;">
+    <div style="font-weight:800;color:#0d6efd;font-size:.8rem;text-transform:uppercase;margin-bottom:8px;">Paso 2 — Clave</div>
+    <code style="font-size:.83rem;">clave = frozenset('EFGHIJKL')</code>
+    <p style="font-size:.82rem;margin-top:8px;margin-bottom:0;color:#444;">Se convierte a frozenset para poder buscarlo en el dict.</p>
+  </div>
+  <div style="border:2px solid #856404;border-radius:10px;padding:16px;background:#fffbf0;">
+    <div style="font-weight:800;color:#856404;font-size:.8rem;text-transform:uppercase;margin-bottom:8px;">Paso 3 — Resultado</div>
+    <code style="font-size:.83rem;">{74:'F', 77:'G', 79:'E', 80:'K', 81:'I', 82:'H', 85:'J', 87:'L'}</code>
+    <p style="font-size:.82rem;margin-top:8px;margin-bottom:0;color:#444;">Partido 74 → 3ro del Grupo F. Partido 77 → 3ro del Grupo G. Etc.</p>
+  </div>
+</div>
+
+<h3>El solver de backtracking — cómo funciona paso a paso</h3>
+<p>Se usa como fallback si una combinación no está en la tabla (no debería pasar con las 495 precalculadas). El backtracking es un algoritmo de fuerza bruta inteligente: intenta asignar grupos a slots uno por uno y, si llega a un punto donde ningún grupo puede ir a un slot, <em>retrocede</em> (backtrack) al paso anterior y prueba otra opción.</p>
+
+<pre><code><span class="kw">def</span> <span class="fn">_resolver_con_backtracking</span>(grupos: list) -> dict:
+    slots   = [<span class="num">74</span>, <span class="num">77</span>, <span class="num">79</span>, <span class="num">80</span>, <span class="num">81</span>, <span class="num">82</span>, <span class="num">85</span>, <span class="num">87</span>]  <span class="cm"># orden fijo → resultado determinístico</span>
+    asignacion = {}
+    usados     = set()                                   <span class="cm"># grupos ya asignados</span>
+
+    <span class="kw">def</span> <span class="fn">backtrack</span>(idx):
+        <span class="kw">if</span> idx == len(slots):
+            <span class="kw">return True</span>                              <span class="cm"># todos los slots asignados → solución</span>
+        slot     = slots[idx]
+        elegibles = SLOTS_ELEGIBLES[slot]
+        <span class="kw">for</span> grupo <span class="kw">in</span> grupos:                          <span class="cm"># grupos en orden alfabético</span>
+            <span class="kw">if</span> grupo <span class="kw">in</span> elegibles <span class="kw">and</span> grupo <span class="kw">not in</span> usados:
+                asignacion[slot] = grupo
+                usados.add(grupo)
+                <span class="kw">if</span> backtrack(idx + <span class="num">1</span>):              <span class="cm"># intenta el siguiente slot</span>
+                    <span class="kw">return True</span>
+                <span class="cm"># no funcionó → deshacer y probar otro</span>
+                <span class="kw">del</span> asignacion[slot]
+                usados.discard(grupo)
+        <span class="kw">return False</span>                                 <span class="cm"># ningún grupo sirve → backtrack</span>
+
+    backtrack(<span class="num">0</span>)
+    <span class="kw">return</span> asignacion</code></pre>
+
+<p>Ejemplo de cómo el backtracking resolvería la combinación {E,F,G,H,I,J,K,L}:</p>
+
+<div class="diagram">
+<pre>
+Slot 74 (elegibles: A,B,C,D,F) — del conjunto {E,F,G,H,I,J,K,L}
+  ↳ prueba F (primero que está en elegibles Y en el conjunto)
+     Slot 77 (elegibles: C,D,F,G,H) — quedan {E,G,H,I,J,K,L}
+       ↳ prueba G
+          Slot 79 (elegibles: C,E,F,H,I) — quedan {E,H,I,J,K,L}
+            ↳ prueba E
+               Slot 80 (elegibles: E,H,I,J,K) — quedan {H,I,J,K,L}
+                 ↳ prueba H
+                    Slot 81 (elegibles: B,E,F,I,J) — quedan {I,J,K,L}
+                      ↳ prueba I
+                         Slot 82 (elegibles: A,E,H,I,J) — quedan {J,K,L}
+                           ↳ prueba J
+                              Slot 85 (elegibles: E,F,G,I,J) — quedan {K,L}
+                                ↳ K? NO (no elegible para 85)
+                                ↳ L? NO (no elegible para 85)
+                              ← backtrack, J no sirve aquí
+                           ↳ ya no hay mas opciones en {J,K,L} para 82
+                         ← backtrack, I no sirve
+                      ↳ prueba J
+                         Slot 82 (elegibles: A,E,H,I,J) — quedan {I,K,L}
+                           ↳ prueba I → OK
+                              Slot 85 (elegibles: E,F,G,I,J) — quedan {K,L}
+                                ← ninguna elegible → backtrack
+                           ↳ ...continúa hasta encontrar solucion
+                      ...
+  resultado final: {74:'F', 77:'G', 79:'E', 80:'K', 81:'I', 82:'H', 85:'J', 87:'L'}
+</pre>
+</div>
+
+<h3>Dónde se llama todo esto — el flujo completo</h3>
+<pre><code><span class="cm"># core/bracket.py — función get_predicted_bracket(perfil)</span>
+
+<span class="cm"># 1. Calcular posiciones predichas en cada grupo</span>
+clasificados = {}
+<span class="kw">for</span> letra <span class="kw">in</span> <span class="str">'ABCDEFGHIJKL'</span>:
+    clasificados[letra] = _clasificados_grupo(perfil, letra)
+    <span class="cm"># retorna [1ro, 2do, 3ro, 4to] como objetos Pais</span>
+
+<span class="cm"># 2. Recoger los 12 terceros con sus stats</span>
+terceros_info = []
+<span class="kw">for</span> letra <span class="kw">in</span> <span class="str">'ABCDEFGHIJKL'</span>:
+    equipo = clasificados[letra][<span class="num">2</span>]        <span class="cm"># índice 2 = tercer lugar</span>
+    stats  = _tercero_stats(perfil, equipo, letra)
+    terceros_info.append({<span class="str">'pais'</span>: equipo, <span class="str">'grupo'</span>: letra, **stats})
+
+<span class="cm"># 3. Ordenar por criterios FIFA y tomar los 8 mejores</span>
+terceros_info.sort(key=<span class="kw">lambda</span> x: (-x[<span class="str">'pts'</span>], -x[<span class="str">'gd'</span>], -x[<span class="str">'gf'</span>], -x[<span class="str">'wins'</span>]))
+mejores_8   = terceros_info[:<span class="num">8</span>]
+grupos_8    = {t[<span class="str">'grupo'</span>] <span class="kw">for</span> t <span class="kw">in</span> mejores_8}      <span class="cm"># set de 8 letras</span>
+terceros_pais = {t[<span class="str">'grupo'</span>]: t[<span class="str">'pais'</span>] <span class="kw">for</span> t <span class="kw">in</span> mejores_8}
+
+<span class="cm"># 4. Consultar la tabla de 495 combinaciones</span>
+asignacion = asignar_terceros(grupos_8)
+<span class="cm"># retorna ej: {74:'F', 77:'G', 79:'E', ...}</span>
+
+<span class="cm"># 5. Traducir letras a objetos Pais</span>
+terceros_map = {
+    num: terceros_pais[letra]
+    <span class="kw">for</span> num, letra <span class="kw">in</span> asignacion.items()
+    <span class="kw">if</span> letra <span class="kw">in</span> terceros_pais
 }
+<span class="cm"># terceros_map[74] = objeto Pais del 3ro del grupo F</span>
+<span class="cm"># bracket.py usa este mapa para saber quién juega en cada partido R32</span></code></pre>
 
-<span class="kw">def</span> <span class="fn">_solve</span>(grupos, slots, asignacion):
-    <span class="kw">if not</span> slots: <span class="kw">return</span> asignacion  <span class="cm"># solución encontrada</span>
-    slot = slots[<span class="num">0</span>]
-    <span class="kw">for</span> grupo <span class="kw">in</span> grupos:
-        <span class="kw">if</span> grupo <span class="kw">in</span> SLOTS[slot]:
-            result = _solve(grupos - {grupo}, slots[<span class="num">1</span>:],
-                            {**asignacion, slot: grupo})
-            <span class="kw">if</span> result: <span class="kw">return</span> result
-    <span class="kw">return</span> <span class="kw">None</span>  <span class="cm"># backtrack</span></code></pre>
+<h3>Resumen de archivos y responsabilidades</h3>
+<table class="sm">
+  <tr><th>Archivo</th><th>Qué contiene</th><th>Tamaño</th></tr>
+  <tr>
+    <td><code>core/terceros.py</code></td>
+    <td><code>SLOTS_ELEGIBLES</code> (constraints FIFA), <code>asignar_terceros()</code> (función principal), <code>_resolver_con_backtracking()</code> (fallback), <code>CRITERIOS_RANKING</code> (6 criterios de desempate)</td>
+    <td>~100 líneas</td>
+  </tr>
+  <tr>
+    <td><code>core/terceros_tabla.py</code></td>
+    <td><code>COMBINACIONES</code>: dict con 495 entradas precalculadas. Clave = frozenset de 8 letras. Valor = dict{partido: grupo}.</td>
+    <td>~500 líneas</td>
+  </tr>
+</table>
+
+<div class="alert as">
+  <strong>¿Por qué precalcular si ya hay un solver?</strong> El backtracking tarda microsegundos para una combinación, pero se llama en cada petición GET a <code>/eliminatorias/</code>. Precalcular las 495 en un dict hace que la consulta sea O(1) sin cómputo — el servidor responde más rápido y el código es más predecible.
+</div>
+
+<h3>Los 6 criterios de ranking de terceros (FIFA 2026)</h3>
+<p>Para determinar qué 8 terceros son los "mejores" se aplican estos criterios en orden hasta desempatar:</p>
+<table class="sm">
+  <tr><th>#</th><th>Criterio</th><th>Implementado en PollaF</th></tr>
+  <tr><td>1</td><td>Puntos acumulados en fase de grupos</td><td>Sí — <code>pts</code></td></tr>
+  <tr><td>2</td><td>Diferencia de goles (GF − GC)</td><td>Sí — <code>gd</code></td></tr>
+  <tr><td>3</td><td>Goles a favor</td><td>Sí — <code>gf</code></td></tr>
+  <tr><td>4</td><td>Número de victorias</td><td>Sí — <code>wins</code></td></tr>
+  <tr><td>5</td><td>Fair play: −1 amarilla, −3 roja directa, −4 doble amarilla=roja</td><td>No (datos de tarjetas no están en el modelo)</td></tr>
+  <tr><td>6</td><td>Ranking FIFA al momento del sorteo</td><td>No (dato externo)</td></tr>
+</table>
 </section>
 
 <!-- ════════════════════════════════════════════════════════════ -->
