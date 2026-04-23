@@ -1,0 +1,38 @@
+{% extends 'core/base.html' %}
+{% block title %}Ingresar — PollaF 2026{% endblock %}
+
+{% block content %}
+<div style="max-width:420px; margin:0 auto;">
+  <div class="card">
+    <h2>Ingresar</h2>
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label>Correo institucional</label>
+        {{ form.username }}
+        {{ form.username.errors }}
+      </div>
+
+      <div class="form-group">
+        <label>Contraseña</label>
+        {{ form.password }}
+        {{ form.password.errors }}
+      </div>
+
+      {% if form.non_field_errors %}
+        <p style="color:#dc3545; font-size:.88rem; margin-bottom:12px;">
+          Correo o contraseña incorrectos.
+        </p>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary" style="width:100%;">Ingresar</button>
+    </form>
+
+    <p style="text-align:center; margin-top:18px; font-size:.88rem; color:#666;">
+      ¿No tienes cuenta? <a href="{% url 'core:registro' %}">Regístrate</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PollaF 2026 — Documentación técnica completa</title>
+<style>
+:root {
+  --verde:#1a7f4b; --verde2:#25a96a; --gris:#f4f6f8;
+  --borde:#dde1e7; --texto:#1c1e21; --code:#1e1e2e;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;color:var(--texto);background:#fff;}
+
+/* Sidebar */
+nav{position:fixed;top:0;left:0;width:270px;height:100vh;background:var(--verde);
+    color:#fff;overflow-y:auto;padding:20px 0;z-index:100;}
+nav .brand{font-size:1.15rem;font-weight:800;padding:0 20px 16px;
+           border-bottom:1px solid rgba(255,255,255,.2);display:block;letter-spacing:.02em;}
+nav ul{list-style:none;margin-top:10px;}
+nav ul li a{display:block;padding:7px 20px;color:rgba(255,255,255,.85);
+            text-decoration:none;font-size:.85rem;transition:background .12s;}
+nav ul li a:hover,nav ul li a.active{background:rgba(255,255,255,.18);color:#fff;font-weight:600;}
+nav ul li.sec{padding:12px 20px 3px;font-size:.68rem;text-transform:uppercase;
+              letter-spacing:.1em;color:rgba(255,255,255,.45);font-weight:700;}
+
+/* Main */
+main{margin-left:270px;padding:44px 52px;max-width:1020px;}
+h1{font-size:2.1rem;color:var(--verde);margin-bottom:4px;}
+.sub{color:#777;font-size:.98rem;margin-bottom:44px;}
+h2{font-size:1.45rem;color:var(--verde);margin:52px 0 14px;padding-bottom:7px;
+   border-bottom:2.5px solid var(--borde);}
+h3{font-size:1.05rem;margin:24px 0 9px;color:#222;font-weight:700;}
+h4{font-size:.93rem;margin:18px 0 6px;color:#444;font-weight:700;}
+p{line-height:1.75;margin-bottom:12px;color:#444;}
+ul,ol{padding-left:22px;margin-bottom:12px;}
+li{line-height:1.85;color:#444;}
+a{color:var(--verde2);}
+section{margin-bottom:8px;}
+hr{border:none;border-top:1px solid var(--borde);margin:32px 0;}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;
+       font-size:.75rem;font-weight:700;margin:2px;}
+.bg{background:#d4edda;color:#155724;}
+.bb{background:#cce5ff;color:#004085;}
+.bo{background:#fff3cd;color:#856404;}
+.br{background:#f8d7da;color:#721c24;}
+.bp{background:#e2d9f3;color:#4a235a;}
+
+/* Code */
+pre{background:var(--code);color:#cdd6f4;padding:18px 22px;border-radius:9px;
+    overflow-x:auto;font-size:.84rem;line-height:1.65;margin:14px 0;}
+code{font-family:'Consolas','Courier New',monospace;}
+p code,li code,td code{background:#eef0f3;padding:1px 6px;border-radius:4px;
+                        font-size:.87em;color:#c7254e;}
+.kw{color:#cba6f7;} .str{color:#a6e3a1;} .num{color:#fab387;}
+.cm{color:#6c7086;font-style:italic;} .fn{color:#89b4fa;}
+.cls{color:#f9e2af;} .attr{color:#89dceb;}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.88rem;}
+th{background:var(--verde);color:#fff;padding:9px 13px;text-align:left;}
+td{padding:8px 13px;border-bottom:1px solid var(--borde);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--gris);}
+table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
+
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin:14px 0;}
+.card{border:1px solid var(--borde);border-radius:9px;padding:16px;background:var(--gris);}
+.card h4{font-size:.95rem;color:var(--verde);margin-bottom:5px;}
+.card p{font-size:.85rem;margin:0;color:#555;}
+
+/* Alerts */
+.alert{border-left:4px solid;padding:13px 17px;border-radius:0 8px 8px 0;
+       margin:14px 0;font-size:.91rem;}
+.ai{border-color:#17a2b8;background:#d1ecf1;color:#0c5460;}
+.aw{border-color:#ffc107;background:#fff3cd;color:#856404;}
+.as{border-color:var(--verde2);background:#d4edda;color:#155724;}
+.ae{border-color:#dc3545;background:#f8d7da;color:#721c24;}
+
+/* Diagram / flow */
+.diagram{background:var(--gris);border:1px solid var(--borde);
+         border-radius:8px;padding:18px 20px;font-family:monospace;
+         font-size:.83rem;line-height:1.85;overflow-x:auto;margin:14px 0;}
+.flow{display:flex;align-items:stretch;flex-wrap:wrap;margin:14px 0;gap:0;}
+.fs{background:var(--verde);color:#fff;padding:9px 16px;font-size:.82rem;
+    font-weight:600;position:relative;}
+.fs:not(:last-child)::after{content:'';position:absolute;right:-13px;top:50%;
+  transform:translateY(-50%);border:13px solid transparent;
+  border-left-color:var(--verde);z-index:1;}
+.fs:nth-child(2n){background:var(--verde2);}
+.fs:nth-child(2n)::after{border-left-color:var(--verde2);}
+
+/* Score boxes */
+.sb{display:flex;gap:14px;margin:14px 0;flex-wrap:wrap;}
+.si{flex:1;min-width:140px;border:2px solid var(--borde);border-radius:10px;
+    padding:14px;text-align:center;}
+.si .pts{font-size:2.4rem;font-weight:800;color:var(--verde);}
+.si .lbl{font-size:.83rem;color:#666;margin-top:4px;}
+
+/* Endpoint table coloring */
+.method-get{background:#d4edda;color:#155724;font-weight:700;border-radius:4px;padding:2px 7px;}
+.method-post{background:#cce5ff;color:#004085;font-weight:700;border-radius:4px;padding:2px 7px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<nav>
+  <span class="brand">PollaF — Docs</span>
+  <ul>
+    <li class="sec">Introducción</li>
+    <li><a href="#overview">Qué es PollaF</a></li>
+    <li><a href="#stack">Stack tecnológico</a></li>
+    <li><a href="#mvt">MVC vs MVT — la diferencia</a></li>
+    <li><a href="#credenciales">Credenciales y acceso</a></li>
+    <li><a href="#mapa">Mapa del proyecto</a></li>
+    <li><a href="#estructura">Archivos en detalle</a></li>
+
+    <li class="sec">Base de datos</li>
+    <li><a href="#modelos">Modelos (tablas)</a></li>
+    <li><a href="#er">Diagrama ER</a></li>
+    <li><a href="#migraciones">Migraciones</a></li>
+
+    <li class="sec">Reglas del torneo</li>
+    <li><a href="#mundial">Formato Mundial 2026</a></li>
+    <li><a href="#grupos">12 grupos — 48 equipos</a></li>
+    <li><a href="#terceros">Regla mejores terceros</a></li>
+    <li><a href="#puntuacion">Sistema de puntuación</a></li>
+
+    <li class="sec">Aplicación web</li>
+    <li><a href="#auth">Registro y autenticación</a></li>
+    <li><a href="#forms">Formularios</a></li>
+    <li><a href="#endpoints">Endpoints (URLs)</a></li>
+    <li><a href="#views">Vistas — lógica detallada</a></li>
+    <li><a href="#templates">Templates HTML</a></li>
+    <li><a href="#templatetags">Template tags</a></li>
+
+    <li class="sec">Algoritmos</li>
+    <li><a href="#scoring">Cálculo de puntos</a></li>
+    <li><a href="#bracket">Bracket en cascada</a></li>
+    <li><a href="#terceros-algo">Asignación de terceros</a></li>
+
+    <li class="sec">Administración</li>
+    <li><a href="#admin">Panel admin — workflows</a></li>
+    <li><a href="#admin-modelos">Admin por modelo</a></li>
+
+    <li class="sec">Operaciones</li>
+    <li><a href="#comandos">Comandos útiles</a></li>
+    <li><a href="#settings">Settings Django</a></li>
+    <li><a href="#estado">Estado actual</a></li>
+  </ul>
+</nav>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<main>
+
+<h1>PollaF 2026</h1>
+<p class="sub">Manual técnico completo — arquitectura, modelos, endpoints, algoritmos, administración</p>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="overview">
+<h2>¿Qué es PollaF?</h2>
+<p>PollaF es una aplicación web de predicciones del Mundial FIFA 2026, desarrollada en Django + PostgreSQL para la Universidad de América. Los participantes se registran con su correo <code>@usa.edu.co</code>, completan predicciones de <strong>los 104 partidos</strong> (72 de grupos + 32 eliminatorios) antes del inicio del torneo y compiten en un ranking global por puntaje acumulado.</p>
+
+<div class="cards">
+  <div class="card"><h4>48 equipos</h4><p>12 grupos de 4 países. Datos fijos, pre-cargados con el comando <code>poblar_mundial</code>.</p></div>
+  <div class="card"><h4>104 partidos</h4><p>72 grupos + 16 R32 + 8 R16 + 4 QF + 2 SF + 1 TP + 1 FI. El usuario predice todos.</p></div>
+  <div class="card"><h4>Bracket en cascada</h4><p>Las fases eliminatorias se auto-construyen desde las predicciones de grupos del usuario.</p></div>
+  <div class="card"><h4>Ranking global</h4><p>Todos compiten en la misma tabla. Los puntos se actualizan en tiempo real al ingresar resultados.</p></div>
+  <div class="card"><h4>Admin restringido</h4><p>El administrador solo ingresa marcadores reales. Equipos, puntos y estructura son automáticos.</p></div>
+  <div class="card"><h4>Bloqueo de torneo</h4><p>Un botón en el admin congela todas las predicciones cuando el torneo comienza.</p></div>
+</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="stack">
+<h2>Stack tecnológico</h2>
+<table>
+  <tr><th>Capa</th><th>Tecnología</th><th>Versión</th><th>Rol</th></tr>
+  <tr><td>Framework web</td><td>Django</td><td>6.0.4</td><td>MVT: routing, ORM, admin, sesiones, auth</td></tr>
+  <tr><td>Base de datos</td><td>PostgreSQL</td><td>16</td><td>Almacenamiento relacional principal</td></tr>
+  <tr><td>Driver BD</td><td>psycopg2-binary</td><td>2.9.12</td><td>Adaptador Python ↔ PostgreSQL</td></tr>
+  <tr><td>Lenguaje</td><td>Python</td><td>3.12</td><td>—</td></tr>
+  <tr><td>Frontend</td><td>Django Templates + HTML/CSS vanilla</td><td>—</td><td>Server-side rendering, sin JS framework</td></tr>
+  <tr><td>Imágenes banderas</td><td>flagcdn.com CDN</td><td>—</td><td>PNG 24×18 px por código ISO 2 letras</td></tr>
+  <tr><td>Admin GUI BD</td><td>pgAdmin 4</td><td>—</td><td>Inspección y mantenimiento PostgreSQL</td></tr>
+</table>
+
+<div class="alert ai">
+  <strong>Patrón MVT:</strong> Django usa Model–View–Template. El <em>Model</em> define tablas ORM, la <em>View</em> contiene toda la lógica de negocio y construye el contexto, el <em>Template</em> renderiza HTML con ese contexto. El router (urls.py) hace el rol del Controller de MVC clásico.
+</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="mvt">
+<h2>MVC vs MVT — cómo se llaman las piezas en Django</h2>
+
+<p>La arquitectura más conocida en desarrollo web es <strong>MVC</strong> (Model – View – Controller). Django usa una variante llamada <strong>MVT</strong> (Model – View – Template), pero con los nombres cambiados de forma confusa. Esta tabla lo aclara:</p>
+
+<table>
+  <tr>
+    <th>Concepto</th>
+    <th>Nombre en MVC</th>
+    <th>Nombre en Django (MVT)</th>
+    <th>Archivo en PollaF</th>
+    <th>Qué hace</th>
+  </tr>
+  <tr>
+    <td><strong>Los datos</strong></td>
+    <td>Model</td>
+    <td><span class="badge bg">Model</span></td>
+    <td><code>core/models.py</code></td>
+    <td>Define las tablas de la base de datos. Igual en ambos patrones.</td>
+  </tr>
+  <tr>
+    <td><strong>La lógica</strong></td>
+    <td>Controller</td>
+    <td><span class="badge bb">View</span></td>
+    <td><code>core/views.py</code></td>
+    <td>Recibe la petición, consulta la BD, procesa datos, decide qué mostrar. Es el "cerebro".</td>
+  </tr>
+  <tr>
+    <td><strong>Lo que ve el usuario</strong></td>
+    <td>View</td>
+    <td><span class="badge bo">Template</span></td>
+    <td><code>core/templates/*.html</code></td>
+    <td>Recibe los datos procesados y los muestra como HTML en el navegador.</td>
+  </tr>
+  <tr>
+    <td><strong>El enrutador</strong></td>
+    <td>(parte del Controller)</td>
+    <td><span class="badge bp">Router</span></td>
+    <td><code>core/urls.py</code></td>
+    <td>Lee la URL de la petición y decide qué View llamar. Django lo separa en su propio archivo.</td>
+  </tr>
+</table>
+
+<div class="alert aw">
+  <strong>El truco:</strong> Django llama "View" a lo que MVC llama Controller, y llama "Template" a lo que MVC llama View. Los nombres están invertidos. Si vienes de otro framework esto es fuente de confusión eterna.
+</div>
+
+<h3>Ejemplo concreto: el usuario abre /ranking/</h3>
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0;">
+  <div style="border:2px solid var(--verde);border-radius:10px;padding:16px;background:#f0faf4;">
+    <div style="font-weight:800;color:var(--verde);font-size:.8rem;text-transform:uppercase;margin-bottom:8px;">① Router — urls.py</div>
+    <p style="font-size:.83rem;margin:0;color:#333;">Ve que la URL es <code>/ranking/</code> y llama a la función <code>ranking</code> en views.py.</p>
+  </div>
+  <div style="border:2px solid #0d6efd;border-radius:10px;padding:16px;background:#f0f4ff;">
+    <div style="font-weight:800;color:#0d6efd;font-size:.8rem;text-transform:uppercase;margin-bottom:8px;">② View — views.py</div>
+    <p style="font-size:.83rem;margin:0;color:#333;">Consulta la BD, ordena usuarios por <code>puntos_totales</code>, arma una lista con pos/nombre/puntos.</p>
+  </div>
+  <div style="border:2px solid #6c757d;border-radius:10px;padding:16px;background:#f8f9fa;">
+    <div style="font-weight:800;color:#555;font-size:.8rem;text-transform:uppercase;margin-bottom:8px;">③ Template — ranking.html</div>
+    <p style="font-size:.83rem;margin:0;color:#333;">Recibe la lista y la convierte en una tabla HTML con colores, posiciones y el usuario resaltado.</p>
+  </div>
+  <div style="border:2px solid #856404;border-radius:10px;padding:16px;background:#fffbf0;">
+    <div style="font-weight:800;color:#856404;font-size:.8rem;text-transform:uppercase;margin-bottom:8px;">④ Respuesta</div>
+    <p style="font-size:.83rem;margin:0;color:#333;">El HTML renderizado llega al navegador del usuario. La BD nunca fue tocada directamente desde el HTML.</p>
+  </div>
+</div>
+
+<h3>Por qué se separó el "Controller" en dos piezas</h3>
+<p>En MVC tradicional, el Controller hace dos cosas: decide qué función ejecutar (routing) y ejecuta la lógica. Django las separó porque en una app grande con 50 URLs, tener todo el routing mezclado con la lógica se vuelve inmanejable. Al tenerlo en <code>urls.py</code> separado, puedes ver de un vistazo todas las rutas de la app sin leer código de lógica.</p>
+
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="credenciales">
+<h2>Credenciales y acceso</h2>
+<table>
+  <tr><th>Recurso</th><th>Valor</th></tr>
+  <tr><td>Base de datos</td><td><code>pollaf_db</code></td></tr>
+  <tr><td>Host PostgreSQL</td><td><code>127.0.0.1:5432</code></td></tr>
+  <tr><td>Usuario PostgreSQL</td><td><code>postgres</code></td></tr>
+  <tr><td>Contraseña PostgreSQL</td><td><code>admin</code></td></tr>
+  <tr><td>Superusuario Django (admin)</td><td>usuario: <code>admin</code> / contraseña: <code>admin2026</code></td></tr>
+  <tr><td>Panel admin URL</td><td><code>http://127.0.0.1:8000/admin/</code></td></tr>
+  <tr><td>Dominio correo válido</td><td><code>@usa.edu.co</code></td></tr>
+  <tr><td>App URL</td><td><code>http://127.0.0.1:8000/</code></td></tr>
+</table>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="mapa">
+<h2>Mapa del proyecto — la gran imagen</h2>
+
+<p>Cuando abres la carpeta <strong>PollaF</strong> en tu escritorio, ves esto:</p>
+
+<div style="background:#f8f9fa;border:2px solid var(--borde);border-radius:12px;padding:28px 32px;margin:18px 0;font-family:monospace;font-size:.9rem;line-height:2.2;">
+  <div style="margin-bottom:6px;font-size:1rem;font-weight:800;color:#222;">📁 PollaF &nbsp;<span style="font-size:.75rem;font-weight:400;color:#999;">← carpeta raíz (todo el proyecto vive aquí)</span></div>
+  <div style="margin-left:24px;">
+    <div style="color:#1a7f4b;font-weight:700;">📁 pollaf/ &nbsp;<span style="font-size:.75rem;font-weight:400;color:#999;">← configuración global de Django</span></div>
+    <div style="color:#0d6efd;font-weight:700;">📁 core/ &nbsp;&nbsp;&nbsp;<span style="font-size:.75rem;font-weight:400;color:#999;">← toda la lógica de la app</span></div>
+    <div style="color:#6c757d;font-weight:700;">📁 docs/ &nbsp;&nbsp;&nbsp;<span style="font-size:.75rem;font-weight:400;color:#999;">← documentación (este archivo)</span></div>
+    <div style="color:#333;font-weight:700;">📄 manage.py &nbsp;<span style="font-size:.75rem;font-weight:400;color:#999;">← comando para arrancar el servidor y más</span></div>
+    <div style="color:#333;">📄 credenciales.txt</div>
+    <div style="color:#333;">📄 iniciar_servidor.bat</div>
+  </div>
+</div>
+
+<h3>¿Por qué hay dos carpetas con nombre similar?</h3>
+<p>Es la parte más confusa para quien empieza. Cuando se crea un proyecto Django con el comando <code>django-admin startproject pollaf</code>, Django crea automáticamente una <strong>subcarpeta con el mismo nombre del proyecto</strong> para guardar la configuración. Resultado: la carpeta del escritorio se llama <code>PollaF</code> (con mayúscula, la creaste tú) y adentro hay una carpeta <code>pollaf</code> (minúsculas, la creó Django).</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:20px 0;">
+  <div style="background:#d4edda;border:2px solid #28a745;border-radius:10px;padding:20px;">
+    <div style="font-size:1.5rem;margin-bottom:8px;">📁</div>
+    <div style="font-weight:800;font-size:1rem;color:#155724;">PollaF/</div>
+    <div style="font-size:.83rem;color:#155724;margin-top:6px;">La carpeta del escritorio. Contiene todo: el código, la configuración, la documentación. Es la raíz del proyecto.</div>
+    <div style="margin-top:10px;font-size:.75rem;background:rgba(0,0,0,.08);padding:6px 10px;border-radius:6px;color:#155724;">La creaste tú.</div>
+  </div>
+  <div style="background:#cce5ff;border:2px solid #0d6efd;border-radius:10px;padding:20px;">
+    <div style="font-size:1.5rem;margin-bottom:8px;">⚙️</div>
+    <div style="font-weight:800;font-size:1rem;color:#004085;">pollaf/</div>
+    <div style="font-size:.83rem;color:#004085;margin-top:6px;">Configuración global: base de datos, apps instaladas, URL raíz, contraseñas. No tiene lógica de negocio de la app.</div>
+    <div style="margin-top:10px;font-size:.75rem;background:rgba(0,0,0,.08);padding:6px 10px;border-radius:6px;color:#004085;">La creó Django automáticamente.</div>
+  </div>
+  <div style="background:#fff3cd;border:2px solid #ffc107;border-radius:10px;padding:20px;">
+    <div style="font-size:1.5rem;margin-bottom:8px;">🏗️</div>
+    <div style="font-weight:800;font-size:1rem;color:#856404;">core/</div>
+    <div style="font-size:.83rem;color:#856404;margin-top:6px;">La app de Django. Aquí vive TODO: las tablas de la BD, las páginas, los formularios, los algoritmos de puntos y bracket.</div>
+    <div style="margin-top:10px;font-size:.75rem;background:rgba(0,0,0,.08);padding:6px 10px;border-radius:6px;color:#856404;">La creaste tú con <code>startapp core</code>.</div>
+  </div>
+</div>
+
+<div class="alert ai">
+  <strong>Analogía:</strong> Si PollaF fuera una tienda física → <strong>pollaf/</strong> sería el acta de constitución (dirección, nombre legal, reglamento interno) y <strong>core/</strong> sería el almacén completo con los empleados, los productos y las cajas registradoras. El acta dice que la tienda existe; el almacén es donde pasan las cosas.
+</div>
+
+<h3>¿Qué hace cada archivo de primer nivel?</h3>
+<table>
+  <tr><th>Archivo / Carpeta</th><th>Para qué sirve</th><th>¿Lo tocas a mano?</th></tr>
+  <tr><td><code>manage.py</code></td><td>Punto de entrada para comandos Django: <code>runserver</code>, <code>migrate</code>, <code>createsuperuser</code>…</td><td>No se edita, solo se ejecuta.</td></tr>
+  <tr><td><code>pollaf/settings.py</code></td><td>Toda la configuración global: credenciales de la BD, apps instaladas, zona horaria, clave secreta.</td><td>Solo cuando cambias configuración.</td></tr>
+  <tr><td><code>pollaf/urls.py</code></td><td>El "directorio" de URLs raíz. Le dice a Django: <em>las URLs de /admin/ van al panel admin; todo lo demás va a core/urls.py</em>.</td><td>Raramente.</td></tr>
+  <tr><td><code>credenciales.txt</code></td><td>Apunte manual con usuario/contraseña de PostgreSQL.</td><td>Solo para recordar credenciales.</td></tr>
+  <tr><td><code>iniciar_servidor.bat</code></td><td>Script de Windows para arrancar el servidor con doble clic.</td><td>No.</td></tr>
+</table>
+
+<h3>¿Cómo fluye una petición web?</h3>
+<div class="flow" style="flex-wrap:wrap;gap:4px;">
+  <div class="fs">Navegador pide<br><small>/ranking/</small></div>
+  <div class="fs">pollaf/urls.py<br><small>redirige a core/</small></div>
+  <div class="fs">core/urls.py<br><small>identifica la vista</small></div>
+  <div class="fs">core/views.py<br><small>lógica + BD</small></div>
+  <div class="fs">core/templates/<br><small>render HTML</small></div>
+  <div class="fs">Respuesta al<br><small>navegador</small></div>
+</div>
+
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="estructura">
+<h2>Archivos en detalle — qué hace cada uno</h2>
+
+<h3>📁 pollaf/ — configuración global</h3>
+<table>
+  <tr><th>Archivo</th><th>Qué contiene / para qué sirve</th></tr>
+  <tr>
+    <td><code>settings.py</code></td>
+    <td>El archivo de configuración más importante del proyecto. Define: credenciales de PostgreSQL, lista de apps instaladas (<code>INSTALLED_APPS</code>), zona horaria (<code>America/Bogota</code>), clave secreta de Django, URL de login, y más. Si algo global falla, aquí se busca primero.</td>
+  </tr>
+  <tr>
+    <td><code>urls.py</code></td>
+    <td>El "directorio raíz" de URLs. Solo tiene dos líneas importantes: <code>path('admin/', admin.site.urls)</code> → todo lo que llega a /admin/ va al panel de administración; <code>path('', include('core.urls'))</code> → todo lo demás lo maneja la app core.</td>
+  </tr>
+  <tr>
+    <td><code>wsgi.py</code> / <code>asgi.py</code></td>
+    <td>Puntos de entrada para despliegue en producción (en un servidor real). No se usan en desarrollo local.</td>
+  </tr>
+</table>
+
+<h3>📁 core/ — la app completa</h3>
+<p>En Django, una "app" es un módulo autocontenido que agrupa modelos, vistas, URLs y templates de una funcionalidad. Este proyecto tiene una sola app: <strong>core</strong>.</p>
+
+<table>
+  <tr><th>Archivo</th><th>Qué contiene / para qué sirve</th></tr>
+  <tr>
+    <td><code>models.py</code></td>
+    <td><strong>Las tablas de la base de datos.</strong> Cada clase Python aquí = una tabla en PostgreSQL. Define los 5 modelos: <code>Pais</code> (48 países), <code>Partido</code> (104 partidos), <code>TorneoConfig</code> (bloqueo), <code>PerfilUsuario</code> (participantes), <code>Prediccion</code> (predicciones).</td>
+  </tr>
+  <tr>
+    <td><code>views.py</code></td>
+    <td><strong>La lógica de cada página.</strong> Cada función aquí es una "vista": recibe la petición HTTP del usuario, consulta la BD, procesa datos, y entrega un contexto al template HTML. Son 8 vistas: home, eliminatorias, mundial, ranking, llenar_prueba, registro, login, logout.</td>
+  </tr>
+  <tr>
+    <td><code>urls.py</code></td>
+    <td><strong>El mapa de URLs de la app.</strong> Conecta una dirección web con su vista correspondiente. Ej: <code>/ranking/</code> → función <code>ranking</code> en views.py.</td>
+  </tr>
+  <tr>
+    <td><code>forms.py</code></td>
+    <td><strong>Los formularios con validación.</strong> Define <code>RegistroForm</code> (valida que el correo sea @usa.edu.co, que las contraseñas coincidan) y <code>LoginForm</code> (correo + contraseña).</td>
+  </tr>
+  <tr>
+    <td><code>admin.py</code></td>
+    <td><strong>La configuración del panel /admin/.</strong> Define qué puede y qué no puede hacer el administrador en cada tabla: qué campos ve, cuáles puede editar, qué acciones tiene disponibles.</td>
+  </tr>
+  <tr>
+    <td><code>scoring.py</code></td>
+    <td><strong>El algoritmo de puntos.</strong> La función <code>calcular_puntos_partido()</code> se ejecuta automáticamente cuando el admin ingresa un resultado. Calcula 0, 2 o 5 puntos para cada predicción y actualiza el total de cada participante.</td>
+  </tr>
+  <tr>
+    <td><code>bracket.py</code></td>
+    <td><strong>El bracket eliminatorio en cascada.</strong> Toma las predicciones de grupos de un usuario y calcula, paso a paso, quién jugaría en R32, R16, QF, SF, Final — todo derivado automáticamente.</td>
+  </tr>
+  <tr>
+    <td><code>terceros.py</code></td>
+    <td><strong>El asignador de mejores terceros.</strong> Decide, de los 12 terceros de grupo, cuáles 8 clasifican y a qué partido R32 va cada uno según las reglas FIFA.</td>
+  </tr>
+  <tr>
+    <td><code>terceros_tabla.py</code></td>
+    <td><strong>Las 495 combinaciones FIFA.</strong> Un diccionario Python gigante con todas las posibles combinaciones de grupos que pueden clasificar como tercer lugar, y la asignación correcta de slots. Evita recalcular en cada petición.</td>
+  </tr>
+  <tr>
+    <td><code>apps.py</code></td>
+    <td>Metadata de la app (nombre, configuración interna). Django lo usa internamente; no se toca.</td>
+  </tr>
+  <tr>
+    <td><code>tests.py</code></td>
+    <td>Archivo para pruebas automatizadas. Actualmente vacío; se puede usar para escribir tests unitarios.</td>
+  </tr>
+</table>
+
+<h3>📁 core/templates/ — los archivos HTML</h3>
+<p>Los templates son los archivos HTML que Django rellena con datos y envía al navegador. Usan una sintaxis especial con <code>{% %}</code> para lógica y <code>{{ }}</code> para mostrar datos.</p>
+
+<div class="alert ai">
+  <strong>¿Por qué hay dos niveles de carpetas?</strong> <code>core/templates/core/</code> puede parecer redundante, pero es la convención de Django: la carpeta <code>templates/</code> la detecta Django automáticamente, y la subcarpeta <code>core/</code> evita conflictos de nombres si hubiera varias apps con un archivo <code>base.html</code> cada una.
+</div>
+
+<table>
+  <tr><th>Template</th><th>Qué muestra</th></tr>
+  <tr><td><code>core/base.html</code></td><td><strong>El layout base.</strong> Define el HTML completo con navbar, container y footer. Todos los demás templates lo "extienden" con <code>{% extends 'core/base.html' %}</code> y solo llenan los bloques de contenido.</td></tr>
+  <tr><td><code>core/home.html</code></td><td>Predicciones de la fase de grupos. Tabs A–L, un formulario por grupo, barras de progreso, botón de datos de prueba.</td></tr>
+  <tr><td><code>core/eliminatorias.html</code></td><td>Predicciones del bracket eliminatorio. Muestra las fases R32 → Final con los equipos calculados por bracket.py.</td></tr>
+  <tr><td><code>core/mundial.html</code></td><td>Estado real del torneo (no predicciones). Muestra posiciones actuales de cada grupo y resultados reales con banderas.</td></tr>
+  <tr><td><code>core/ranking.html</code></td><td>Tabla global de participantes ordenada por puntos. Resalta al usuario actual.</td></tr>
+  <tr><td><code>core/login.html</code></td><td>Formulario de ingreso.</td></tr>
+  <tr><td><code>core/registro.html</code></td><td>Formulario de creación de cuenta.</td></tr>
+  <tr><td><code>admin/torneo_config_changelist.html</code></td><td>Template custom del panel admin para el bloqueo del torneo. Reemplaza la lista estándar de Django con un panel visual de estado + botón de bloqueo.</td></tr>
+</table>
+
+<h3>📁 core/templatetags/ — funciones extra para los templates</h3>
+<p>Django no permite hacer operaciones complejas dentro del HTML (como acceder a un diccionario con una clave variable). Los "template tags" son funciones Python que se pueden llamar desde dentro del HTML con la sintaxis <code>{{ variable|nombre_filtro }}</code>. Se cargan con <code>{% load core_extras %}</code>.</p>
+<table>
+  <tr><th>Filtro en core_extras.py</th><th>Para qué sirve</th></tr>
+  <tr><td><code>get_item</code></td><td>Accede a un dict con una clave variable. Sin esto, Django solo permite claves fijas.</td></tr>
+  <tr><td><code>saved_in_group</code></td><td>Cuenta cuántos partidos de un grupo ya tienen predicción (para el punto verde/amarillo del tab).</td></tr>
+  <tr><td><code>flag_url</code></td><td>Convierte código FIFA (ej: "COL") en URL de bandera PNG (flagcdn.com/24x18/co.png).</td></tr>
+  <tr><td><code>puntos_color / puntos_bg / puntos_icono</code></td><td>Devuelven colores CSS y texto según si el usuario sacó 5, 2 o 0 puntos en un partido.</td></tr>
+</table>
+
+<h3>📁 core/migrations/ — historial de cambios a la BD</h3>
+<p>Cada vez que modificas un modelo en <code>models.py</code> y corres <code>python manage.py makemigrations</code>, Django genera un archivo de migración aquí. Cada archivo registra exactamente qué cambió en la base de datos (qué tabla se creó, qué columna se agregó, etc.). Son como un historial de versiones de la BD.</p>
+<p><strong>No se editan a mano.</strong> Django los genera y los aplica automáticamente con <code>python manage.py migrate</code>.</p>
+
+<h3>📁 core/management/commands/ — comandos personalizados</h3>
+<p>Permite crear comandos propios que se ejecutan con <code>python manage.py nombre_comando</code>.</p>
+<table>
+  <tr><th>Comando</th><th>Qué hace</th></tr>
+  <tr><td><code>poblar_mundial.py</code></td><td>Inserta los 48 países y los 104 partidos en la base de datos. Solo se corre una vez al inicializar el proyecto. Si ya existen los datos, los actualiza sin duplicar.</td></tr>
+</table>
+
+<h3>📁 docs/</h3>
+<p>Carpeta de documentación. Solo contiene <code>documentacion.html</code> — este archivo que estás leyendo. No forma parte del código de la app; es solo referencia para entender el proyecto.</p>
+
+<h3>Árbol completo con descripción inline</h3>
+<div class="diagram">
+<pre>PollaF/                              ← carpeta raíz (escritorio)
+│
+├── manage.py                        ← botón de encendido de Django
+├── credenciales.txt                 ← usuario/clave de PostgreSQL
+├── iniciar_servidor.bat             ← atajo Windows para runserver
+│
+├── pollaf/                          ← CONFIGURACIÓN GLOBAL
+│   ├── settings.py                  ← BD, apps, zona horaria, clave secreta
+│   ├── urls.py                      ← router raíz: /admin/ y todo lo demás → core
+│   ├── wsgi.py                      ← para producción (ignorar en dev)
+│   └── asgi.py                      ← para producción async (ignorar en dev)
+│
+├── core/                            ← LA APP — aquí vive todo
+│   ├── models.py                    ← tablas de la BD (Pais, Partido, Prediccion…)
+│   ├── views.py                     ← lógica de cada página
+│   ├── urls.py                      ← /ruta/ → qué vista la maneja
+│   ├── forms.py                     ← formularios con validación
+│   ├── admin.py                     ← qué puede hacer el admin en /admin/
+│   ├── scoring.py                   ← algoritmo de cálculo de puntos
+│   ├── bracket.py                   ← bracket eliminatorio en cascada
+│   ├── terceros.py                  ← asignación de mejores 8 terceros
+│   ├── terceros_tabla.py            ← 495 combinaciones FIFA precargadas
+│   ├── apps.py                      ← metadata interna de la app (no tocar)
+│   ├── tests.py                     ← pruebas automatizadas (vacío por ahora)
+│   │
+│   ├── templatetags/
+│   │   └── core_extras.py           ← filtros custom: flag_url, get_item, puntos_*
+│   │
+│   ├── migrations/                  ← historial de cambios a la BD (no editar a mano)
+│   │   ├── 0001_initial.py
+│   │   ├── 0002_pais_partido_perfilusuario_prediccion.py
+│   │   ├── 0003_prediccion_clasificado_pred.py
+│   │   └── 0004_torneoconfig_partido_clasificado_real.py
+│   │
+│   ├── management/commands/
+│   │   └── poblar_mundial.py        ← carga 48 países + 104 partidos (solo 1 vez)
+│   │
+│   └── templates/
+│       ├── core/                    ← templates de la app (páginas del usuario)
+│       │   ├── base.html            ← layout base: navbar + footer + CSS global
+│       │   ├── home.html            ← predicciones grupos (tabs A-L)
+│       │   ├── eliminatorias.html   ← predicciones bracket eliminatorio
+│       │   ├── mundial.html         ← estado real del torneo con flags y tabla
+│       │   ├── ranking.html         ← ranking global de participantes
+│       │   ├── login.html           ← formulario de ingreso
+│       │   └── registro.html        ← formulario de registro
+│       │
+│       └── admin/                   ← templates custom del panel admin
+│           └── torneo_config_changelist.html  ← panel de bloqueo del torneo
+│
+└── docs/
+    └── documentacion.html           ← este archivo</pre>
+</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="modelos">
+<h2>Modelos Django — tablas en PostgreSQL</h2>
+<p>Todos los modelos viven en <code>core/models.py</code>. Django convierte cada clase en una tabla SQL via ORM. Los nombres de tabla siguen el patrón <code>core_&lt;nombreclase&gt;</code>.</p>
+
+<h3>1. Pais — <code>core_pais</code></h3>
+<p>Tabla fija con los 48 países del Mundial 2026. Se carga una sola vez con el management command <code>poblar_mundial</code> y nunca es modificada por el usuario ni el admin.</p>
+<pre><code><span class="kw">class</span> <span class="cls">Pais</span>(models.Model):
+    nombre  = models.CharField(max_length=<span class="num">100</span>)        <span class="cm"># "Colombia", "Brasil"…</span>
+    codigo  = models.CharField(max_length=<span class="num">3</span>, unique=<span class="kw">True</span>)  <span class="cm"># "COL", "BRA" — código FIFA 3 letras</span>
+    grupo   = models.CharField(max_length=<span class="num">1</span>)          <span class="cm"># "A" … "L"</span>
+
+    <span class="kw">class</span> <span class="cls">Meta</span>:
+        verbose_name_plural = <span class="str">"Paises"</span>
+        ordering = [<span class="str">'grupo'</span>, <span class="str">'nombre'</span>]</code></pre>
+
+<table class="sm">
+  <tr><th>Campo</th><th>SQL type</th><th>Constraints</th><th>Descripción</th></tr>
+  <tr><td><code>id</code></td><td>SERIAL (integer)</td><td>PK, auto</td><td>Clave primaria autogenerada</td></tr>
+  <tr><td><code>nombre</code></td><td>VARCHAR(100)</td><td>NOT NULL</td><td>Nombre del país en español</td></tr>
+  <tr><td><code>codigo</code></td><td>VARCHAR(3)</td><td>NOT NULL, UNIQUE</td><td>Código FIFA de 3 letras (ej: COL, MEX)</td></tr>
+  <tr><td><code>grupo</code></td><td>VARCHAR(1)</td><td>NOT NULL</td><td>Letra del grupo (A–L)</td></tr>
+</table>
+
+<h3>2. Partido — <code>core_partido</code></h3>
+<p>Los 104 partidos del torneo. En fase de grupos, los equipos están definidos desde el inicio. En eliminatorias, <code>equipo_local</code> y <code>equipo_visitante</code> quedan en NULL hasta que el torneo avance en la realidad; los campos <code>label_local</code>/<code>label_visitante</code> describen el slot (ej: <em>"1ro Grupo A"</em>, <em>"Mejor 3ro C/D/E"</em>).</p>
+<pre><code><span class="kw">class</span> <span class="cls">Partido</span>(models.Model):
+    FASES = [
+        (<span class="str">'GR'</span>, <span class="str">'Fase de Grupos'</span>),    <span class="cm"># 72 partidos</span>
+        (<span class="str">'R32'</span>, <span class="str">'Ronda de 32'</span>),       <span class="cm"># 16 partidos</span>
+        (<span class="str">'R16'</span>, <span class="str">'Octavos de Final'</span>),  <span class="cm"># 8 partidos</span>
+        (<span class="str">'QF'</span>, <span class="str">'Cuartos de Final'</span>),   <span class="cm"># 4 partidos</span>
+        (<span class="str">'SF'</span>, <span class="str">'Semifinal'</span>),          <span class="cm"># 2 partidos</span>
+        (<span class="str">'TP'</span>, <span class="str">'Tercer Puesto'</span>),      <span class="cm"># 1 partido</span>
+        (<span class="str">'FI'</span>, <span class="str">'Final'</span>),             <span class="cm"># 1 partido</span>
+    ]
+
+    numero           = models.PositiveSmallIntegerField(unique=<span class="kw">True</span>)  <span class="cm"># 1–104</span>
+    fase             = models.CharField(max_length=<span class="num">3</span>, choices=FASES)
+    grupo            = models.CharField(max_length=<span class="num">1</span>, blank=<span class="kw">True</span>)   <span class="cm"># solo fase GR</span>
+    equipo_local     = models.ForeignKey(Pais, null=<span class="kw">True</span>, blank=<span class="kw">True</span>,
+                           on_delete=models.SET_NULL, related_name=<span class="str">'partidos_local'</span>)
+    equipo_visitante = models.ForeignKey(Pais, null=<span class="kw">True</span>, blank=<span class="kw">True</span>,
+                           on_delete=models.SET_NULL, related_name=<span class="str">'partidos_visitante'</span>)
+    label_local      = models.CharField(max_length=<span class="num">60</span>, blank=<span class="kw">True</span>)  <span class="cm"># "1ro Grupo A"</span>
+    label_visitante  = models.CharField(max_length=<span class="num">60</span>, blank=<span class="kw">True</span>)
+    goles_local_real    = models.SmallIntegerField(null=<span class="kw">True</span>, blank=<span class="kw">True</span>)
+    goles_visitante_real= models.SmallIntegerField(null=<span class="kw">True</span>, blank=<span class="kw">True</span>)
+    clasificado_real    = models.ForeignKey(<span class="str">'Pais'</span>, null=<span class="kw">True</span>, blank=<span class="kw">True</span>,
+                           on_delete=models.SET_NULL,
+                           related_name=<span class="str">'clasificaciones_reales'</span>)  <span class="cm"># ganador en penales</span>
+    jugado = models.BooleanField(default=<span class="kw">False</span>)</code></pre>
+
+<table class="sm">
+  <tr><th>Campo</th><th>SQL type</th><th>Constraints</th><th>Descripción</th></tr>
+  <tr><td><code>id</code></td><td>SERIAL</td><td>PK, auto</td><td>—</td></tr>
+  <tr><td><code>numero</code></td><td>SMALLINT</td><td>NOT NULL, UNIQUE</td><td>Número oficial FIFA del partido (1–104)</td></tr>
+  <tr><td><code>fase</code></td><td>VARCHAR(3)</td><td>NOT NULL</td><td>GR / R32 / R16 / QF / SF / TP / FI</td></tr>
+  <tr><td><code>grupo</code></td><td>VARCHAR(1)</td><td>NULL OK</td><td>A–L solo en fase GR; vacío en eliminatorias</td></tr>
+  <tr><td><code>equipo_local_id</code></td><td>INTEGER</td><td>FK→core_pais, NULL OK</td><td>NULL en eliminatorias hasta que se defina</td></tr>
+  <tr><td><code>equipo_visitante_id</code></td><td>INTEGER</td><td>FK→core_pais, NULL OK</td><td>NULL en eliminatorias hasta que se defina</td></tr>
+  <tr><td><code>label_local</code></td><td>VARCHAR(60)</td><td>—</td><td>"1ro Grupo A", "Ganador R32 M73", "Mejor 3ro C/D/F"</td></tr>
+  <tr><td><code>label_visitante</code></td><td>VARCHAR(60)</td><td>—</td><td>Ídem para visitante</td></tr>
+  <tr><td><code>goles_local_real</code></td><td>SMALLINT</td><td>NULL hasta jugarse</td><td>Goles reales del local en 90 min</td></tr>
+  <tr><td><code>goles_visitante_real</code></td><td>SMALLINT</td><td>NULL hasta jugarse</td><td>Goles reales del visitante en 90 min</td></tr>
+  <tr><td><code>clasificado_real_id</code></td><td>INTEGER</td><td>FK→core_pais, NULL OK</td><td>Equipo que avanzó en penales (solo eliminatorias con empate real)</td></tr>
+  <tr><td><code>jugado</code></td><td>BOOLEAN</td><td>DEFAULT false</td><td>El admin lo activa al ingresar el resultado</td></tr>
+</table>
+
+<h3>3. TorneoConfig — <code>core_torneoconfig</code></h3>
+<p>Singleton (pk=1 siempre). Controla si el torneo está abierto o bloqueado a predicciones. El método de clase <code>get()</code> usa <code>get_or_create(pk=1)</code> para garantizar existencia sin duplicados.</p>
+<pre><code><span class="kw">class</span> <span class="cls">TorneoConfig</span>(models.Model):
+    bloqueado    = models.BooleanField(default=<span class="kw">False</span>)
+    bloqueado_en = models.DateTimeField(null=<span class="kw">True</span>, blank=<span class="kw">True</span>)
+
+    <span class="at">@classmethod</span>
+    <span class="kw">def</span> <span class="fn">get</span>(cls):
+        obj, _ = cls.objects.get_or_create(pk=<span class="num">1</span>)
+        <span class="kw">return</span> obj
+
+    <span class="at">@classmethod</span>
+    <span class="kw">def</span> <span class="fn">esta_bloqueado</span>(cls):
+        <span class="kw">return</span> cls.get().bloqueado</code></pre>
+
+<table class="sm">
+  <tr><th>Campo</th><th>SQL type</th><th>Descripción</th></tr>
+  <tr><td><code>id</code></td><td>SERIAL</td><td>Siempre 1 (singleton)</td></tr>
+  <tr><td><code>bloqueado</code></td><td>BOOLEAN</td><td>False = predicciones abiertas; True = nadie puede cambiar</td></tr>
+  <tr><td><code>bloqueado_en</code></td><td>TIMESTAMPTZ</td><td>Timestamp de cuándo se bloqueó. NULL si está abierto.</td></tr>
+</table>
+
+<h3>4. PerfilUsuario — <code>core_perfilusuario</code></h3>
+<p>Extiende el <code>auth_user</code> de Django (que ya gestiona contraseña, email, sesiones) con datos adicionales del proyecto. La relación 1-a-1 se accede con <code>user.perfil</code> (related_name) o <code>perfil.user</code>. Los usuarios admin (is_staff=True) <strong>no tienen</strong> PerfilUsuario.</p>
+<pre><code><span class="kw">class</span> <span class="cls">PerfilUsuario</span>(models.Model):
+    user            = models.OneToOneField(User, on_delete=models.CASCADE,
+                          related_name=<span class="str">'perfil'</span>)
+    nombre_completo = models.CharField(max_length=<span class="num">200</span>)
+    puntos_totales  = models.IntegerField(default=<span class="num">0</span>)</code></pre>
+
+<table class="sm">
+  <tr><th>Campo</th><th>SQL type</th><th>Descripción</th></tr>
+  <tr><td><code>id</code></td><td>SERIAL</td><td>PK</td></tr>
+  <tr><td><code>user_id</code></td><td>INTEGER</td><td>FK→auth_user, UNIQUE (OneToOne)</td></tr>
+  <tr><td><code>nombre_completo</code></td><td>VARCHAR(200)</td><td>Nombre del participante</td></tr>
+  <tr><td><code>puntos_totales</code></td><td>INTEGER</td><td>Se recalcula con SUM(Prediccion.puntos) cada vez que se procesa un partido</td></tr>
+</table>
+
+<h3>5. Prediccion — <code>core_prediccion</code></h3>
+<p>Una fila por combinación <em>usuario × partido</em>. Máximo 104 predicciones por usuario. El campo <code>puntos</code> es NULL hasta que el partido se juega; <code>clasificado_pred</code> solo se usa en fases eliminatorias cuando el usuario predice un empate.</p>
+<pre><code><span class="kw">class</span> <span class="cls">Prediccion</span>(models.Model):
+    usuario          = models.ForeignKey(PerfilUsuario, on_delete=models.CASCADE,
+                           related_name=<span class="str">'predicciones'</span>)
+    partido          = models.ForeignKey(Partido, on_delete=models.CASCADE,
+                           related_name=<span class="str">'predicciones'</span>)
+    goles_local      = models.SmallIntegerField()
+    goles_visitante  = models.SmallIntegerField()
+    clasificado_pred = models.ForeignKey(Pais, null=<span class="kw">True</span>, blank=<span class="kw">True</span>,
+                           on_delete=models.SET_NULL,
+                           related_name=<span class="str">'clasificaciones_pred'</span>)
+    puntos           = models.SmallIntegerField(null=<span class="kw">True</span>, blank=<span class="kw">True</span>)
+
+    <span class="kw">class</span> <span class="cls">Meta</span>:
+        unique_together = (<span class="str">'usuario'</span>, <span class="str">'partido'</span>)  <span class="cm"># índice UNIQUE compuesto en BD</span></code></pre>
+
+<table class="sm">
+  <tr><th>Campo</th><th>SQL type</th><th>Constraints</th><th>Descripción</th></tr>
+  <tr><td><code>id</code></td><td>SERIAL</td><td>PK</td><td>—</td></tr>
+  <tr><td><code>usuario_id</code></td><td>INTEGER</td><td>FK→core_perfilusuario</td><td>—</td></tr>
+  <tr><td><code>partido_id</code></td><td>INTEGER</td><td>FK→core_partido</td><td>—</td></tr>
+  <tr><td><code>goles_local</code></td><td>SMALLINT</td><td>NOT NULL</td><td>Goles predichos para el equipo local</td></tr>
+  <tr><td><code>goles_visitante</code></td><td>SMALLINT</td><td>NOT NULL</td><td>Goles predichos para el visitante</td></tr>
+  <tr><td><code>clasificado_pred_id</code></td><td>INTEGER</td><td>FK→core_pais, NULL OK</td><td>El usuario elige quién avanza si predice empate en eliminatoria</td></tr>
+  <tr><td><code>puntos</code></td><td>SMALLINT</td><td>NULL hasta jugarse</td><td>0, 2 o 5. NULL = partido no jugado aún.</td></tr>
+  <tr><td colspan="4"><em>UNIQUE constraint en (usuario_id, partido_id)</em></td></tr>
+</table>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="er">
+<h2>Diagrama Entidad-Relación</h2>
+<div class="diagram">
+<pre>
+  ┌─────────────────┐
+  │   auth_user     │   (tabla Django — contraseña hashed PBKDF2+SHA256)
+  │─────────────────│
+  │ id PK           │
+  │ username (=email)│
+  │ email           │
+  │ password        │
+  │ is_staff        │ ← True solo para admin; False para participantes
+  └────────┬────────┘
+           │ OneToOne (related_name='perfil')
+  ┌────────▼─────────────────┐        ┌────────────────────────────┐
+  │   core_perfilusuario     │        │       core_pais            │
+  │──────────────────────────│        │────────────────────────────│
+  │ id PK                   │        │ id PK                      │
+  │ user_id FK (UNIQUE)     │        │ nombre VARCHAR(100)        │
+  │ nombre_completo         │        │ codigo VARCHAR(3) UNIQUE   │
+  │ puntos_totales INT      │        │ grupo VARCHAR(1)           │
+  └────────────┬────────────┘        └──────────────┬─────────────┘
+               │                                    │ FK × 4
+               │ 1:N                      ┌─────────▼──────────────────────────┐
+  ┌────────────▼──────────────────┐       │          core_partido              │
+  │       core_prediccion         │       │────────────────────────────────────│
+  │───────────────────────────────│       │ id PK                              │
+  │ id PK                        │       │ numero SMALLINT UNIQUE (1-104)      │
+  │ usuario_id FK                │       │ fase VARCHAR(3) — GR/R32/R16/QF/SF/TP/FI │
+  │ partido_id  FK ──────────────┼──────►│ grupo VARCHAR(1) — solo GR         │
+  │ goles_local SMALLINT         │       │ equipo_local_id FK→Pais NULL OK     │
+  │ goles_visitante SMALLINT     │       │ equipo_visitante_id FK→Pais NULL OK │
+  │ clasificado_pred_id FK→Pais  │       │ label_local VARCHAR(60)            │
+  │ puntos SMALLINT NULL         │       │ label_visitante VARCHAR(60)        │
+  │ UNIQUE(usuario_id,partido_id)│       │ goles_local_real SMALLINT NULL     │
+  └───────────────────────────────┘       │ goles_visitante_real SMALLINT NULL │
+                                          │ clasificado_real_id FK→Pais NULL OK│
+                                          │ jugado BOOLEAN DEFAULT false       │
+                                          └────────────────────────────────────┘
+
+  ┌──────────────────────────────┐
+  │     core_torneoconfig        │   (singleton pk=1)
+  │──────────────────────────────│
+  │ id = 1 (siempre)            │
+  │ bloqueado BOOLEAN            │
+  │ bloqueado_en TIMESTAMPTZ NULL│
+  └──────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="migraciones">
+<h2>Historial de migraciones</h2>
+<table class="sm">
+  <tr><th>Migración</th><th>Qué crea / modifica</th></tr>
+  <tr><td><code>0001_initial.py</code></td><td>Tablas iniciales base del proyecto</td></tr>
+  <tr><td><code>0002_pais_partido_perfilusuario_prediccion.py</code></td><td>Crea core_pais, core_partido, core_perfilusuario, core_prediccion</td></tr>
+  <tr><td><code>0003_prediccion_clasificado_pred.py</code></td><td>Agrega FK <code>clasificado_pred_id</code> a core_prediccion</td></tr>
+  <tr><td><code>0004_torneoconfig_partido_clasificado_real.py</code></td><td>Crea core_torneoconfig; agrega FK <code>clasificado_real_id</code> a core_partido</td></tr>
+</table>
+<pre><code><span class="cm"># Aplicar todas las migraciones</span>
+python manage.py migrate
+
+<span class="cm"># Ver estado de migraciones</span>
+python manage.py showmigrations core</code></pre>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="mundial">
+<h2>Formato Mundial 2026</h2>
+<div class="flow">
+  <div class="fs">Grupos<br><small>72 partidos</small></div>
+  <div class="fs">Ronda 32<br><small>16 partidos</small></div>
+  <div class="fs">Octavos<br><small>8 partidos</small></div>
+  <div class="fs">Cuartos<br><small>4 partidos</small></div>
+  <div class="fs">Semis<br><small>2 partidos</small></div>
+  <div class="fs">3er + Final<br><small>2 partidos</small></div>
+</div>
+
+<ul>
+  <li>12 grupos de 4 equipos → 6 partidos por grupo (todos contra todos) → <strong>72 partidos</strong></li>
+  <li>Clasifican: 1ro y 2do de cada grupo (24 equipos) + los <strong>8 mejores terceros</strong> = 32 equipos en la Ronda de 32</li>
+  <li>Desde R32: eliminación directa. Empate en 90 min → tiempo extra → penales</li>
+  <li>Total: 72 + 16 + 8 + 4 + 2 + 1 + 1 = <strong>104 partidos</strong></li>
+</ul>
+
+<table class="sm">
+  <tr><th>Fase</th><th>Código</th><th>Partidos</th><th>Números</th></tr>
+  <tr><td>Fase de Grupos</td><td>GR</td><td>72</td><td>1–72</td></tr>
+  <tr><td>Ronda de 32</td><td>R32</td><td>16</td><td>73–88</td></tr>
+  <tr><td>Octavos de Final</td><td>R16</td><td>8</td><td>89–96</td></tr>
+  <tr><td>Cuartos de Final</td><td>QF</td><td>4</td><td>97–100</td></tr>
+  <tr><td>Semifinal</td><td>SF</td><td>2</td><td>101–102</td></tr>
+  <tr><td>Tercer Puesto</td><td>TP</td><td>1</td><td>103</td></tr>
+  <tr><td>Final</td><td>FI</td><td>1</td><td>104</td></tr>
+  <tr><td><strong>Total</strong></td><td>—</td><td><strong>104</strong></td><td>1–104</td></tr>
+</table>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="grupos">
+<h2>Los 12 grupos — 48 equipos</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:14px 0;">
+  <div class="card"><h4>Grupo A</h4><p>México (MEX) · Sudáfrica (RSA) · Corea del Sur (KOR) · Rep. Checa (CZE)</p></div>
+  <div class="card"><h4>Grupo B</h4><p>Canadá (CAN) · Bosnia y Herz. (BIH) · Qatar (QAT) · Suiza (SUI)</p></div>
+  <div class="card"><h4>Grupo C</h4><p>Brasil (BRA) · Marruecos (MAR) · Haití (HAI) · Escocia (SCO)</p></div>
+  <div class="card"><h4>Grupo D</h4><p>Estados Unidos (USA) · Paraguay (PAR) · Australia (AUS) · Turquía (TUR)</p></div>
+  <div class="card"><h4>Grupo E</h4><p>Alemania (GER) · Curazao (CUW) · Costa de Marfil (CIV) · Ecuador (ECU)</p></div>
+  <div class="card"><h4>Grupo F</h4><p>Países Bajos (NED) · Japón (JPN) · Suecia (SWE) · Túnez (TUN)</p></div>
+  <div class="card"><h4>Grupo G</h4><p>Bélgica (BEL) · Egipto (EGY) · Irán (IRN) · Nueva Zelanda (NZL)</p></div>
+  <div class="card"><h4>Grupo H</h4><p>España (ESP) · Cabo Verde (CPV) · Arabia Saudita (KSA) · Uruguay (URU)</p></div>
+  <div class="card"><h4>Grupo I</h4><p>Francia (FRA) · Senegal (SEN) · Irak (IRQ) · Noruega (NOR)</p></div>
+  <div class="card"><h4>Grupo J</h4><p>Argentina (ARG) · Argelia (ALG) · Austria (AUT) · Jordania (JOR)</p></div>
+  <div class="card"><h4>Grupo K</h4><p>Portugal (POR) · RD Congo (COD) · Uzbekistán (UZB) · Colombia (COL)</p></div>
+  <div class="card"><h4>Grupo L</h4><p>Inglaterra (ENG) · Croacia (CRO) · Ghana (GHA) · Panamá (PAN)</p></div>
+</div>
+
+<h3>Partidos de grupos — distribución</h3>
+<p>Cada grupo tiene 6 partidos (todos contra todos). Los partidos 1–72 se distribuyen de forma que cada par de grupos comparte jornada. Los grupos A–L se alternan en las jornadas del calendario FIFA.</p>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="terceros">
+<h2>Regla de mejores terceros</h2>
+<p>De los 12 grupos, cada uno produce un equipo en tercer lugar. Solo <strong>8 de esos 12 terceros</strong> avanzan a la Ronda de 32. Se seleccionan por orden de mérito:</p>
+<ol>
+  <li><strong>Puntos</strong> en fase de grupos</li>
+  <li><strong>Diferencia de goles</strong> (GF − GC)</li>
+  <li><strong>Goles a favor</strong></li>
+  <li><strong>Victorias</strong></li>
+  <li>Fair play (tarjetas — implementado en el mundo real; en PollaF se usa hasta wins)</li>
+</ol>
+
+<h3>Asignación a slots de Ronda de 32</h3>
+<p>FIFA tiene una tabla de <strong>495 combinaciones</strong> (C(12,8)) que indica, dado el conjunto exacto de 8 grupos cuyos terceros clasifican, a qué partido R32 va cada uno. Esta restricción existe porque los slots de tercer lugar en R32 solo aceptan equipos de ciertos grupos (para garantizar equilibrio geográfico).</p>
+
+<table class="sm">
+  <tr><th>Partido R32</th><th>Acepta tercer lugar de grupos…</th></tr>
+  <tr><td>#74</td><td>A, B, C, D, F</td></tr>
+  <tr><td>#77</td><td>C, D, F, G, H</td></tr>
+  <tr><td>#79</td><td>C, E, F, H, I</td></tr>
+  <tr><td>#80</td><td>E, H, I, J, K</td></tr>
+  <tr><td>#81</td><td>B, E, F, I, J</td></tr>
+  <tr><td>#82</td><td>A, E, H, I, J</td></tr>
+  <tr><td>#85</td><td>E, F, G, I, J</td></tr>
+  <tr><td>#87</td><td>D, E, I, J, L</td></tr>
+</table>
+
+<p>La tabla completa está en <code>core/terceros_tabla.py</code>. Si no se encuentra la combinación exacta, <code>core/terceros.py</code> corre un solver de backtracking que garantiza una asignación válida.</p>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="puntuacion">
+<h2>Sistema de puntuación</h2>
+<div class="sb">
+  <div class="si"><div class="pts">5</div><div class="lbl">Marcador exacto<br><small>ej: predijo 2-1, fue 2-1</small></div></div>
+  <div class="si"><div class="pts">2</div><div class="lbl">Solo resultado correcto<br><small>ej: predijo 3-1, fue 2-0 (ambos local gana)</small></div></div>
+  <div class="si"><div class="pts">0</div><div class="lbl">Resultado incorrecto<br><small>ej: predijo empate, ganó local</small></div></div>
+</div>
+
+<h3>Fase de grupos (GR)</h3>
+<ul>
+  <li>El resultado puede ser: victoria local (L), empate (E), victoria visitante (V).</li>
+  <li><strong>5 pts</strong> si <code>goles_local_pred == goles_local_real</code> AND <code>goles_visitante_pred == goles_visitante_real</code></li>
+  <li><strong>2 pts</strong> si el resultado (L/E/V) coincide pero los goles son distintos.</li>
+  <li><strong>0 pts</strong> si el resultado no coincide.</li>
+</ul>
+
+<h3>Fases eliminatorias (R32, R16, QF, SF, TP, FI)</h3>
+<ul>
+  <li>No hay empate final: siempre hay un clasificado (si 90 min empatan → tiempo extra → penales).</li>
+  <li>Si el usuario predice empate en el marcador, <strong>debe elegir además quién clasifica</strong> (campo <code>clasificado_pred</code>).</li>
+  <li>El admin también registra <code>clasificado_real</code> cuando el marcador en 90 min es empate.</li>
+  <li><strong>5 pts</strong>: marcador exacto en 90 min Y clasificado correcto.</li>
+  <li><strong>2 pts</strong>: clasificado correcto pero marcador errado (o empate correcto pero clasificado incorrecto no aplica → 0).</li>
+  <li><strong>0 pts</strong>: clasificado incorrecto.</li>
+</ul>
+
+<div class="alert ai">
+  En eliminatorias, el "ganador real" (<code>ganador_real</code>) se determina así: si el marcador en 90 min es diferente → el equipo con más goles. Si empatan en 90 min → <code>partido.clasificado_real</code> (lo ingresa el admin). El usuario predice un marcador y si ese marcador es empate debe elegir quién avanza en <code>clasificado_pred</code>.
+</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="auth">
+<h2>Registro y autenticación</h2>
+
+<h3>Flujo de registro</h3>
+<ol>
+  <li>Usuario entra a <code>/registro/</code> (GET) → ve el formulario.</li>
+  <li>Envía POST con nombre, correo, contraseña x2.</li>
+  <li><code>RegistroForm.clean_email()</code> valida que termine en <code>@usa.edu.co</code> y que no exista ya.</li>
+  <li><code>clean()</code> valida que las dos contraseñas coincidan.</li>
+  <li>Si válido: <code>User.objects.create_user(username=email, email=email, password=...)</code> + <code>PerfilUsuario.objects.create(...)</code></li>
+  <li>Redirige a <code>/login/</code> con mensaje de éxito.</li>
+</ol>
+
+<h3>Flujo de login</h3>
+<ol>
+  <li><code>LoginForm</code> extiende <code>AuthenticationForm</code> — usa Django's built-in auth.</li>
+  <li>El username del formulario es el email (el campo se renombró).</li>
+  <li>Django autentica con PBKDF2+SHA256 (hashing automático).</li>
+  <li>Si <code>user.is_staff</code> → redirige a <code>/admin/</code>. Si es participante → redirige a <code>/</code>.</li>
+</ol>
+
+<h3>Sesiones</h3>
+<p>Django maneja la sesión con cookies firmadas (<code>sessionid</code>). El decorador <code>@login_required</code> garantiza que todas las vistas de participantes requieran autenticación; si no hay sesión activa, redirige a <code>/login/</code>.</p>
+
+<h3>Separación admin / participante</h3>
+<p>Los usuarios <code>is_staff=True</code> no tienen <code>PerfilUsuario</code>. El helper <code>_get_perfil(request)</code> captura la excepción <code>RelatedObjectDoesNotExist</code> y retorna <code>None</code>. Al inicio de cada vista protegida se verifica:</p>
+<pre><code><span class="kw">if</span> request.user.is_staff:
+    <span class="kw">return</span> redirect(<span class="str">'/admin/'</span>)
+perfil = _get_perfil(request)
+<span class="kw">if</span> perfil <span class="kw">is None</span>:
+    <span class="kw">return</span> redirect(<span class="str">'core:login'</span>)</code></pre>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="forms">
+<h2>Formularios — <code>core/forms.py</code></h2>
+
+<h3>RegistroForm</h3>
+<pre><code><span class="kw">class</span> <span class="cls">RegistroForm</span>(forms.Form):
+    nombre_completo = forms.CharField(max_length=<span class="num">200</span>)
+    email           = forms.EmailField()
+    password1       = forms.CharField(widget=forms.PasswordInput)
+    password2       = forms.CharField(widget=forms.PasswordInput)
+
+    <span class="kw">def</span> <span class="fn">clean_email</span>(self):
+        email = self.cleaned_data[<span class="str">'email'</span>].lower()
+        <span class="kw">if not</span> email.endswith(<span class="str">'@usa.edu.co'</span>):
+            <span class="kw">raise</span> forms.ValidationError(<span class="str">'Solo @usa.edu.co'</span>)
+        <span class="kw">if</span> User.objects.filter(email=email).exists():
+            <span class="kw">raise</span> forms.ValidationError(<span class="str">'Ya existe una cuenta con este correo.'</span>)
+        <span class="kw">return</span> email
+
+    <span class="kw">def</span> <span class="fn">clean</span>(self):               <span class="cm"># valida que password1 == password2</span>
+        ...</code></pre>
+
+<h3>LoginForm</h3>
+<pre><code><span class="kw">class</span> <span class="cls">LoginForm</span>(AuthenticationForm):
+    username = forms.EmailField(label=<span class="str">'Correo institucional'</span>)
+    <span class="cm"># Hereda toda la lógica de autenticación de Django</span></code></pre>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="endpoints">
+<h2>Endpoints — URLs de la aplicación</h2>
+
+<h3>Rutas participante — <code>core/urls.py</code> (app_name='core')</h3>
+<table>
+  <tr><th>URL</th><th>Nombre</th><th>Métodos</th><th>Auth</th><th>Descripción</th></tr>
+  <tr>
+    <td><code>/</code></td><td><code>core:home</code></td>
+    <td><span class="method-get">GET</span> <span class="method-post">POST</span></td>
+    <td>Login requerido</td>
+    <td>Predicciones fase de grupos. POST guarda predicciones de un grupo (accion=guardar_grupo).</td>
+  </tr>
+  <tr>
+    <td><code>/eliminatorias/</code></td><td><code>core:eliminatorias</code></td>
+    <td><span class="method-get">GET</span> <span class="method-post">POST</span></td>
+    <td>Login requerido</td>
+    <td>Predicciones bracket eliminatorio. Muestra bracket calculado desde predicciones de grupos.</td>
+  </tr>
+  <tr>
+    <td><code>/mundial/</code></td><td><code>core:mundial</code></td>
+    <td><span class="method-get">GET</span></td>
+    <td>Login requerido</td>
+    <td>Estado real del torneo: grupos (tabla posiciones + resultados) + bracket eliminatorio real.</td>
+  </tr>
+  <tr>
+    <td><code>/ranking/</code></td><td><code>core:ranking</code></td>
+    <td><span class="method-get">GET</span></td>
+    <td>Login requerido</td>
+    <td>Ranking global de participantes ordenado por puntos.</td>
+  </tr>
+  <tr>
+    <td><code>/llenar-prueba/</code></td><td><code>core:llenar_prueba</code></td>
+    <td><span class="method-post">POST</span></td>
+    <td>Login requerido</td>
+    <td>Rellena los 72 partidos de grupos con marcadores aleatorios. Solo si torneo no bloqueado.</td>
+  </tr>
+  <tr>
+    <td><code>/registro/</code></td><td><code>core:registro</code></td>
+    <td><span class="method-get">GET</span> <span class="method-post">POST</span></td>
+    <td>Público</td>
+    <td>Formulario de creación de cuenta con validación @usa.edu.co.</td>
+  </tr>
+  <tr>
+    <td><code>/login/</code></td><td><code>core:login</code></td>
+    <td><span class="method-get">GET</span> <span class="method-post">POST</span></td>
+    <td>Público</td>
+    <td>Login con correo + contraseña. Admin → /admin/, participante → /.</td>
+  </tr>
+  <tr>
+    <td><code>/logout/</code></td><td><code>core:logout</code></td>
+    <td><span class="method-get">GET</span></td>
+    <td>—</td>
+    <td>Cierra sesión y redirige a /login/.</td>
+  </tr>
+</table>
+
+<h3>Rutas admin — generadas por Django + custom URLs</h3>
+<table>
+  <tr><th>URL</th><th>Descripción</th></tr>
+  <tr><td><code>/admin/</code></td><td>Panel admin principal</td></tr>
+  <tr><td><code>/admin/core/pais/</code></td><td>Ver países (solo lectura)</td></tr>
+  <tr><td><code>/admin/core/partido/</code></td><td>Listar partidos, ingresar resultados</td></tr>
+  <tr><td><code>/admin/core/partido/&lt;id&gt;/change/</code></td><td>Editar resultado de un partido específico</td></tr>
+  <tr><td><code>/admin/core/torneoconfig/</code></td><td>Panel de bloqueo del torneo (custom template)</td></tr>
+  <tr><td><code>/admin/core/torneoconfig/bloquear/</code></td><td>POST/GET → bloquea el torneo</td></tr>
+  <tr><td><code>/admin/core/torneoconfig/desbloquear/</code></td><td>POST/GET → desbloquea el torneo</td></tr>
+  <tr><td><code>/admin/core/perfilusuario/</code></td><td>Ver participantes, puntos, predicciones</td></tr>
+</table>
+
+<h3>Variables de contexto por vista</h3>
+<h4>home (GET)</h4>
+<table class="sm">
+  <tr><th>Variable</th><th>Tipo Python</th><th>Descripción</th></tr>
+  <tr><td><code>perfil</code></td><td>PerfilUsuario</td><td>Perfil del usuario actual</td></tr>
+  <tr><td><code>partidos_grupos</code></td><td>QuerySet[Partido]</td><td>72 partidos GR con select_related equipo_local/visitante</td></tr>
+  <tr><td><code>predicciones_map</code></td><td>dict{int: Prediccion}</td><td>partido_id → Prediccion del usuario. O(1) lookup en template.</td></tr>
+  <tr><td><code>total_pred</code></td><td>int</td><td>Número de predicciones de grupos del usuario (0–72)</td></tr>
+  <tr><td><code>total_jugados</code></td><td>int</td><td>Partidos jugados en el torneo real</td></tr>
+  <tr><td><code>bloqueado</code></td><td>bool</td><td>Si el torneo está bloqueado (TorneoConfig.esta_bloqueado())</td></tr>
+</table>
+
+<h4>eliminatorias (GET)</h4>
+<table class="sm">
+  <tr><th>Variable</th><th>Tipo Python</th><th>Descripción</th></tr>
+  <tr><td><code>fases_display</code></td><td>list[dict]</td><td>Lista de fases, cada una con: clave, nombre, matches=[{partido, local, visitante, pred}]</td></tr>
+  <tr><td><code>total_pred_gr</code></td><td>int</td><td>Cuántas predicciones de grupos tiene el usuario</td></tr>
+  <tr><td><code>perfil</code></td><td>PerfilUsuario</td><td>—</td></tr>
+</table>
+
+<h4>mundial (GET)</h4>
+<table class="sm">
+  <tr><th>Variable</th><th>Tipo Python</th><th>Descripción</th></tr>
+  <tr><td><code>grupos_data</code></td><td>list[dict]</td><td>Por grupo: letra, tabla (posiciones), jugados (partidos), pendientes (partidos)</td></tr>
+  <tr><td><code>elim_data</code></td><td>list[dict]</td><td>Fases eliminatorias con partidos jugados o por jugarse en R32</td></tr>
+  <tr><td><code>perfil</code></td><td>PerfilUsuario|None</td><td>—</td></tr>
+</table>
+
+<h4>ranking (GET)</h4>
+<table class="sm">
+  <tr><th>Variable</th><th>Tipo Python</th><th>Descripción</th></tr>
+  <tr><td><code>tabla</code></td><td>list[dict]</td><td>pos, nombre, email, puntos, predicciones, es_yo (bool)</td></tr>
+  <tr><td><code>perfil</code></td><td>PerfilUsuario</td><td>—</td></tr>
+  <tr><td><code>total_jugados</code></td><td>int</td><td>—</td></tr>
+</table>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="views">
+<h2>Vistas — lógica detallada</h2>
+
+<h3>home — predicciones de grupos</h3>
+<p>El POST procesa un grupo a la vez (el formulario envía <code>accion=guardar_grupo</code> y <code>grupo=A</code>). Por cada partido del grupo, busca <code>local_&lt;id&gt;</code> y <code>visitante_&lt;id&gt;</code> en el POST. Usa <code>update_or_create</code> para hacer upsert sin duplicar registros.</p>
+
+<p>El GET construye <code>predicciones_map</code> como un dict plano <code>{partido_id: prediccion}</code> en una sola query, en lugar de hacer N queries en el template. El template usa el filtro personalizado <code>get_item</code> para hacer <code>predicciones_map|get_item:partido.id</code>.</p>
+
+<h3>mundial — estado real del torneo</h3>
+<p>Construye la tabla de posiciones de cada grupo de forma puramente Python, sin sub-queries por equipo. El algoritmo:</p>
+<pre><code><span class="cm"># Para cada partido jugado en el grupo:</span>
+<span class="kw">if</span> gl &gt; gv:
+    equipos[lid][<span class="str">'pg'</span>] += <span class="num">1</span>; equipos[lid][<span class="str">'pts'</span>] += <span class="num">3</span>; equipos[vid][<span class="str">'pp'</span>] += <span class="num">1</span>
+<span class="kw">elif</span> gv &gt; gl:
+    equipos[vid][<span class="str">'pg'</span>] += <span class="num">1</span>; equipos[vid][<span class="str">'pts'</span>] += <span class="num">3</span>; equipos[lid][<span class="str">'pp'</span>] += <span class="num">1</span>
+<span class="kw">else</span>:
+    equipos[lid][<span class="str">'pe'</span>] += <span class="num">1</span>; equipos[lid][<span class="str">'pts'</span>] += <span class="num">1</span>
+    equipos[vid][<span class="str">'pe'</span>] += <span class="num">1</span>; equipos[vid][<span class="str">'pts'</span>] += <span class="num">1</span>
+
+<span class="cm"># Ordenar por: pts desc, diferencia goles desc, goles favor desc</span>
+tabla = sorted(equipos.values(), key=<span class="kw">lambda</span> x: (-x[<span class="str">'pts'</span>], -(x[<span class="str">'gf'</span>]-x[<span class="str">'gc'</span>]), -x[<span class="str">'gf'</span>]))</code></pre>
+
+<h3>ranking — tabla de posiciones</h3>
+<p>Usa un solo <code>annotate(count=Count('id'))</code> sobre <code>Prediccion</code> para obtener el conteo de predicciones de todos los usuarios en una sola query. Luego hace un dict Python para lookup O(1) por usuario.</p>
+
+<h3>llenar_prueba — datos de test</h3>
+<p>Solo POST. Selecciona aleatoriamente de una lista de 15 marcadores predefinidos y hace upsert de las 72 predicciones de grupos en batch. No toca fases eliminatorias.</p>
+<pre><code>SCORES = [(1,0),(0,1),(1,1),(2,1),(1,2),(2,0),(0,2),(2,2),
+           (3,1),(1,3),(3,0),(0,3),(0,0),(3,2),(2,3)]</code></pre>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="templates">
+<h2>Templates HTML</h2>
+
+<h3>base.html — layout global</h3>
+<p>Todas las páginas extienden <code>base.html</code>. Define: variables CSS (<code>--verde</code>, <code>--verde2</code>, <code>--gris</code>, <code>--borde</code>, <code>--texto</code>), navbar sticky con links Grupos / Eliminatorias / Mundial / Ranking / Salir, container centrado (max-width 1100px), sistema de mensajes Django (<code>{% if messages %}</code>), footer.</p>
+
+<p>Bloques disponibles: <code>{% block title %}</code>, <code>{% block extra_css %}</code>, <code>{% block content %}</code>, <code>{% block extra_js %}</code>.</p>
+
+<h3>home.html — predicciones de grupos</h3>
+<p>Barra superior con: puntos totales, partidos jugados, barra de progreso (predicciones/72), botón "Datos de prueba".</p>
+<p>Tabs A–L (12 botones): cada tab muestra solo los 6 partidos del grupo, eliminando el scroll largo. Tab activa se recuerda vía JS. Indicador verde (6/6 guardados) o amarillo (parcial).</p>
+<p>Cada partido muestra: bandera+nombre local | inputs de goles | bandera+nombre visitante. Si el partido ya se jugó, los inputs quedan deshabilitados y se muestra un badge con los puntos obtenidos.</p>
+<p>El filtro <code>{% regroup partidos_grupos by grupo as grupos_list %}</code> agrupa los 72 partidos por letra de grupo en una sola pasada.</p>
+
+<h3>mundial.html — estado real</h3>
+<p>Dos tabs: "Fase de Grupos" y "Eliminatorias". En grupos: tabla de posiciones (PJ/PG/PE/PP/GF/GC/DG/Pts) por grupo con filas verdes (1ro-2do) y amarillas (3ro). Resultados con banderas y marcador. Partidos pendientes listados en texto. En eliminatorias: bracket por fase con equipos, marcadores y ★ para el ganador.</p>
+
+<h3>torneo_config_changelist.html — admin custom</h3>
+<p>Template que reemplaza el changelist estándar de Django admin para TorneoConfig. Muestra un card rojo "BLOQUEADO" o verde "ABIERTO" según el estado, con un botón grande de bloqueo/desbloqueo y un diálogo de confirmación JS.</p>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="templatetags">
+<h2>Template tags — <code>core/templatetags/core_extras.py</code></h2>
+<p>Registrados con <code>{% load core_extras %}</code> en cada template que los usa. Los template tags son necesarios porque Django no permite llamar a métodos de diccionarios con variables en templates (solo con literales).</p>
+
+<table>
+  <tr><th>Filtro</th><th>Firma Python</th><th>Retorna</th><th>Uso en template</th></tr>
+  <tr>
+    <td><code>get_item</code></td>
+    <td><code>get_item(dictionary, key)</code></td>
+    <td>value o None</td>
+    <td><code>predicciones_map|get_item:partido.id</code> — acceso O(1) al dict de predicciones</td>
+  </tr>
+  <tr>
+    <td><code>saved_in_group</code></td>
+    <td><code>saved_in_group(pred_map, partidos_list)</code></td>
+    <td>int (0–6)</td>
+    <td><code>predicciones_map|saved_in_group:g.list</code> — cuántos partidos del grupo tienen predicción</td>
+  </tr>
+  <tr>
+    <td><code>flag_url</code></td>
+    <td><code>flag_url(pais)</code></td>
+    <td>str URL</td>
+    <td><code>partido.equipo_local|flag_url</code> → <code>https://flagcdn.com/24x18/co.png</code></td>
+  </tr>
+  <tr>
+    <td><code>puntos_color</code></td>
+    <td><code>puntos_color(puntos)</code></td>
+    <td>str CSS color</td>
+    <td><code>pred.puntos|puntos_color</code> → <code>#155724</code> (verde), <code>#856404</code> (amarillo), <code>#721c24</code> (rojo)</td>
+  </tr>
+  <tr>
+    <td><code>puntos_bg</code></td>
+    <td><code>puntos_bg(puntos)</code></td>
+    <td>str CSS background</td>
+    <td>Color de fondo del badge de puntos</td>
+  </tr>
+  <tr>
+    <td><code>puntos_icono</code></td>
+    <td><code>puntos_icono(puntos)</code></td>
+    <td>str texto</td>
+    <td><code>pred.puntos|puntos_icono</code> → "★ 5pts" / "~ 2pts" / "✗ 0pts"</td>
+  </tr>
+</table>
+
+<h3>Mapeo FIFA → ISO para banderas</h3>
+<p>La función <code>flag_url</code> convierte el código FIFA de 3 letras (usado en la BD) al código ISO 2 letras minúsculas (requerido por flagcdn.com). El dict <code>_FIFA_ISO</code> contiene los 48 mapeos. Casos especiales: <code>SCO→gb-sct</code>, <code>ENG→gb-eng</code> (subdivisions UK).</p>
+<pre><code>_FIFA_ISO = {
+    <span class="str">'MEX'</span>:<span class="str">'mx'</span>, <span class="str">'BRA'</span>:<span class="str">'br'</span>, <span class="str">'ARG'</span>:<span class="str">'ar'</span>, <span class="str">'COL'</span>:<span class="str">'co'</span>,
+    <span class="str">'ENG'</span>:<span class="str">'gb-eng'</span>, <span class="str">'SCO'</span>:<span class="str">'gb-sct'</span>,  <span class="cm"># Excepciones UK</span>
+    ...  <span class="cm"># 48 entradas totales</span>
+}
+<span class="cm"># URL resultado: https://flagcdn.com/24x18/{iso}.png</span></code></pre>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="scoring">
+<h2>Algoritmo de cálculo de puntos — <code>core/scoring.py</code></h2>
+<p>La función <code>calcular_puntos_partido(partido)</code> se llama desde <code>PartidoAdmin.save_model()</code> cada vez que el admin guarda un partido con <code>jugado=True</code>. Procesa <strong>todas</strong> las predicciones de ese partido en una sola pasada y actualiza los totales con un UPDATE SQL por usuario afectado.</p>
+
+<pre><code><span class="kw">def</span> <span class="fn">calcular_puntos_partido</span>(partido):
+    <span class="kw">if not</span> partido.jugado <span class="kw">or</span> partido.goles_local_real <span class="kw">is None</span>:
+        <span class="kw">return</span> <span class="num">0</span>
+
+    gl_r = partido.goles_local_real
+    gv_r = partido.goles_visitante_real
+    es_grupo = partido.fase == <span class="str">'GR'</span>
+
+    <span class="cm"># Determinar ganador real (para eliminatorias)</span>
+    <span class="kw">if not</span> es_grupo <span class="kw">and</span> gl_r == gv_r:
+        ganador_real = partido.clasificado_real  <span class="cm"># lo ingresó el admin</span>
+    <span class="kw">elif</span> gl_r &gt; gv_r:
+        ganador_real = partido.equipo_local
+    <span class="kw">else</span>:
+        ganador_real = partido.equipo_visitante
+
+    preds = Prediccion.objects.filter(partido=partido).select_related(<span class="str">'usuario'</span>, <span class="str">'clasificado_pred'</span>)
+    usuarios_afectados = set()
+
+    <span class="kw">for</span> pred <span class="kw">in</span> preds:
+        gl_p, gv_p = pred.goles_local, pred.goles_visitante
+
+        <span class="kw">if</span> es_grupo:
+            <span class="kw">if</span> gl_p == gl_r <span class="kw">and</span> gv_p == gv_r:
+                pts = <span class="num">5</span>                          <span class="cm"># marcador exacto</span>
+            <span class="kw">elif</span> sign(gl_p-gv_p) == sign(gl_r-gv_r):
+                pts = <span class="num">2</span>                          <span class="cm"># mismo resultado (L/E/V)</span>
+            <span class="kw">else</span>:
+                pts = <span class="num">0</span>
+        <span class="kw">else</span>:
+            <span class="cm"># Determinar ganador predicho</span>
+            <span class="kw">if</span> gl_p &gt; gv_p:   ganador_pred = partido.equipo_local
+            <span class="kw">elif</span> gv_p &gt; gl_p: ganador_pred = partido.equipo_visitante
+            <span class="kw">else</span>:             ganador_pred = pred.clasificado_pred
+
+            exact   = (gl_p == gl_r <span class="kw">and</span> gv_p == gv_r)
+            correct = (ganador_pred <span class="kw">and</span> ganador_real <span class="kw">and</span>
+                       ganador_pred.id == ganador_real.id)
+            pts = <span class="num">5</span> <span class="kw">if</span> (exact <span class="kw">and</span> correct) <span class="kw">else</span> <span class="num">2</span> <span class="kw">if</span> correct <span class="kw">else</span> <span class="num">0</span>
+
+        pred.puntos = pts
+        pred.save(update_fields=[<span class="str">'puntos'</span>])     <span class="cm"># UPDATE solo el campo puntos</span>
+        usuarios_afectados.add(pred.usuario_id)
+
+    <span class="cm"># Recalcular puntos_totales para cada usuario afectado</span>
+    <span class="kw">for</span> uid <span class="kw">in</span> usuarios_afectados:
+        total = (Prediccion.objects
+                 .filter(usuario_id=uid, puntos__isnull=<span class="kw">False</span>)
+                 .aggregate(t=Sum(<span class="str">'puntos'</span>))[<span class="str">'t'</span>] <span class="kw">or</span> <span class="num">0</span>)
+        PerfilUsuario.objects.filter(id=uid).update(puntos_totales=total)
+
+    <span class="kw">return</span> len(preds)</code></pre>
+
+<div class="alert as">
+  <strong>Diseño clave:</strong> <code>puntos_totales</code> se recalcula siempre por SUM desde la BD, no incrementalmente. Esto evita desincronización si el admin corrige un resultado ya calculado — simplemente vuelve a correr <code>calcular_puntos_partido</code> y el total se recalcula desde cero sumando todas las predicciones con puntos asignados.
+</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="bracket">
+<h2>Algoritmo de bracket en cascada — <code>core/bracket.py</code></h2>
+<p>La función principal <code>get_predicted_bracket(perfil)</code> construye el bracket completo de un usuario sin ninguna intervención manual, derivando todos los equipos eliminatorios de sus predicciones de grupos.</p>
+
+<h3>Flujo del algoritmo</h3>
+<div class="flow">
+  <div class="fs">Posiciones predichas por grupo</div>
+  <div class="fs">8 mejores terceros</div>
+  <div class="fs">Asignación a slots R32</div>
+  <div class="fs">R32 → R16 → QF → SF</div>
+  <div class="fs">Tercer Puesto + Final</div>
+</div>
+
+<h3>_clasificados_grupo(perfil, letra) → list[Pais]</h3>
+<p>Para cada grupo, simula la tabla de posiciones basada en las predicciones del usuario. Acumula pts/gd/gf/wins para cada equipo y retorna la lista ordenada [1ro, 2do, 3ro, 4to].</p>
+
+<h3>_tercero_stats(perfil, equipo, letra) → dict</h3>
+<p>Extrae pts/gd/gf/wins del equipo en tercer lugar para comparación entre grupos (los criterios de selección de mejores terceros son cross-group).</p>
+
+<h3>_label_to_team(label, clasificados, terceros_map, numero) → Pais|None</h3>
+<p>Resuelve una etiqueta de slot a un equipo concreto:</p>
+<ul>
+  <li><code>"1ro Grupo A"</code> → <code>clasificados['A'][0]</code></li>
+  <li><code>"2do Grupo B"</code> → <code>clasificados['B'][1]</code></li>
+  <li><code>"Mejor 3ro X/Y/Z"</code> → <code>terceros_map[partido_numero]</code></li>
+</ul>
+
+<h3>_predict_outcome(local, visitante, pred) → (winner, loser)</h3>
+<p>Determina ganador y perdedor predicho de un partido eliminatorio. Si la predicción es empate, el ganador es <code>pred.clasificado_pred</code>. Si falta la predicción o el clasificado, retorna (None, None).</p>
+
+<h3>Construcción del bracket por fase</h3>
+<pre><code><span class="cm"># R32: equipos vienen de labels</span>
+<span class="kw">for</span> partido <span class="kw">in</span> r32:
+    local = _label_to_team(partido.label_local, ...)
+    vis   = _label_to_team(partido.label_visitante, ...)
+    teams[partido.id] = (local, vis)
+    winners[partido.id], losers[partido.id] = _predict_outcome(local, vis, pred)
+
+<span class="cm"># R16: ganadores de pares R32 (R32[0] vs R32[1], R32[2] vs R32[3], ...)</span>
+<span class="kw">for</span> i, partido <span class="kw">in</span> enumerate(r16):
+    local = winners.get(r32[i*<span class="num">2</span>].id)
+    vis   = winners.get(r32[i*<span class="num">2</span>+<span class="num">1</span>].id)
+    ...
+
+<span class="cm"># QF, SF: mismo patrón con la fase anterior</span>
+
+<span class="cm"># Tercer puesto: perdedores de las dos semifinales</span>
+teams[tp[<span class="num">0</span>].id] = (losers[sf[<span class="num">0</span>].id], losers[sf[<span class="num">1</span>].id])
+
+<span class="cm"># Final: ganadores de las dos semifinales</span>
+teams[fi[<span class="num">0</span>].id] = (winners[sf[<span class="num">0</span>].id], winners[sf[<span class="num">1</span>].id])</code></pre>
+
+<div class="alert aw">
+  <strong>Dependencia:</strong> Si el usuario no tiene predicciones de grupos, <code>_clasificados_grupo</code> retorna una lista incompleta. Si no hay predicción para un partido eliminatorio, <code>_predict_outcome</code> retorna (None, None) y las fases siguientes muestran "TBD". El bracket es best-effort: muestra lo que puede calcular sin errores.
+</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="terceros-algo">
+<h2>Asignación de mejores terceros — <code>core/terceros.py</code></h2>
+
+<h3>asignar_terceros(grupos_8) → dict{partido_num: letra_grupo}</h3>
+<p>Recibe un frozenset con las letras de los 8 grupos cuyos terceros clasifican (ej: <code>{'A','C','D','F','G','H','I','J'}</code>). Retorna un dict que mapea número de partido R32 → letra del grupo del tercer lugar que juega ahí.</p>
+
+<h3>Flujo de búsqueda</h3>
+<ol>
+  <li>Convierte <code>grupos_8</code> a una clave canonizada (tuple ordenada).</li>
+  <li>Busca en <code>TERCEROS_TABLA</code> (dict en <code>terceros_tabla.py</code>) — 495 combinaciones precargadas.</li>
+  <li>Si no encuentra (combinación no cubierta por la tabla), corre el solver de backtracking.</li>
+</ol>
+
+<h3>Solver de backtracking</h3>
+<p>Intenta asignar cada tercero a un slot compatible (donde el grupo del equipo está en la lista de grupos aceptados del slot). Recorre los slots en orden e intenta cada candidato; si llega a un estado imposible, retrocede. Garantiza solución válida si existe.</p>
+
+<pre><code><span class="cm"># Slots y sus grupos aceptados</span>
+SLOTS = {
+    <span class="num">74</span>: {<span class="str">'A'</span>,<span class="str">'B'</span>,<span class="str">'C'</span>,<span class="str">'D'</span>,<span class="str">'F'</span>},
+    <span class="num">77</span>: {<span class="str">'C'</span>,<span class="str">'D'</span>,<span class="str">'F'</span>,<span class="str">'G'</span>,<span class="str">'H'</span>},
+    ...
+}
+
+<span class="kw">def</span> <span class="fn">_solve</span>(grupos, slots, asignacion):
+    <span class="kw">if not</span> slots: <span class="kw">return</span> asignacion  <span class="cm"># solución encontrada</span>
+    slot = slots[<span class="num">0</span>]
+    <span class="kw">for</span> grupo <span class="kw">in</span> grupos:
+        <span class="kw">if</span> grupo <span class="kw">in</span> SLOTS[slot]:
+            result = _solve(grupos - {grupo}, slots[<span class="num">1</span>:],
+                            {**asignacion, slot: grupo})
+            <span class="kw">if</span> result: <span class="kw">return</span> result
+    <span class="kw">return</span> <span class="kw">None</span>  <span class="cm"># backtrack</span></code></pre>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="admin">
+<h2>Panel de administración — workflows</h2>
+
+<h3>Workflow: ingresar resultado de un partido</h3>
+<ol>
+  <li>Admin entra a <code>/admin/core/partido/</code></li>
+  <li>Filtra por fase (<code>GR</code>, <code>R32</code>, etc.) o busca por número.</li>
+  <li>Hace clic en el partido. Ve el formulario simplificado:
+    <ul>
+      <li>Panel de información del partido (readonly, no editable).</li>
+      <li>Campo <code>goles_local_real</code> (número).</li>
+      <li>Campo <code>goles_visitante_real</code> (número).</li>
+      <li>Campo <code>clasificado_real</code> (dropdown limitado a los 2 equipos del partido) — <strong>solo visible en fases no-GR</strong>.</li>
+      <li>Checkbox <code>jugado</code>.</li>
+    </ul>
+  </li>
+  <li>Admin completa los goles, marca <code>jugado = ✓</code>, guarda.</li>
+  <li>Django llama a <code>save_model()</code> → que llama <code>calcular_puntos_partido()</code>.</li>
+  <li>Se muestra mensaje: "Puntos calculados para N participantes — Partido #X."</li>
+</ol>
+
+<div class="alert ae">
+  <strong>El admin NUNCA puede:</strong> Agregar ni eliminar partidos. Agregar ni eliminar países. Cambiar los equipos de un partido. Agregar ni eliminar participantes. Cambiar puntos directamente.
+</div>
+
+<h3>Workflow: bloquear el torneo</h3>
+<ol>
+  <li>Admin entra a <code>/admin/core/torneoconfig/</code></li>
+  <li>Ve el estado actual (ABIERTO o BLOQUEADO) con la hora si está bloqueado.</li>
+  <li>Hace clic en "Bloquear torneo" → diálogo de confirmación JS.</li>
+  <li>Confirma → POST a <code>/admin/core/torneoconfig/bloquear/</code> → <code>cfg.bloqueado = True</code> + timestamp.</li>
+  <li>Desde ese momento, todas las vistas de participantes rechazan cambios de predicciones.</li>
+</ol>
+
+<h3>Workflow: ver predicciones de un participante</h3>
+<ol>
+  <li>Admin entra a <code>/admin/core/perfilusuario/</code></li>
+  <li>Ve lista con nombre, email, puntos, predicciones grupos/elim.</li>
+  <li>Hace clic en un participante → ve el campo <code>tabla_predicciones</code>: tabla HTML completa con todos los partidos predichos, resultado real y puntos obtenidos.</li>
+</ol>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="admin-modelos">
+<h2>Configuración de admin por modelo</h2>
+
+<h3>PaisAdmin</h3>
+<ul>
+  <li><code>list_display</code>: nombre, codigo, grupo</li>
+  <li><code>list_filter</code>: grupo | <code>search_fields</code>: nombre</li>
+  <li><code>has_add/change/delete_permission</code>: todos retornan <code>False</code> — completamente de solo lectura</li>
+</ul>
+
+<h3>PartidoAdmin</h3>
+<ul>
+  <li><code>list_display</code>: num_badge, fase_badge (con color por fase), equipos_display, resultado_display, jugado, participantes</li>
+  <li><code>readonly_fields</code>: numero, fase, grupo, equipo_local, equipo_visitante, label_local, label_visitante, info_partido</li>
+  <li><code>get_fields()</code>: retorna campos editables. Solo agrega <code>clasificado_real</code> cuando <code>obj.fase != 'GR'</code></li>
+  <li><code>formfield_for_foreignkey()</code>: limita el queryset de <code>clasificado_real</code> a los 2 equipos del partido específico</li>
+  <li><code>save_model()</code>: llama <code>calcular_puntos_partido(obj)</code> si <code>obj.jugado</code></li>
+  <li>Colores de fase: GR=gris, R32=azul, R16=morado, QF=naranja, SF=rojo, TP=verde, FI=dorado</li>
+</ul>
+
+<h3>TorneoConfigAdmin</h3>
+<ul>
+  <li><code>change_list_template</code>: apunta a template custom <code>admin/torneo_config_changelist.html</code></li>
+  <li><code>get_urls()</code>: agrega rutas <code>bloquear/</code> y <code>desbloquear/</code> con <code>admin_site.admin_view()</code> (requiere login admin)</li>
+  <li><code>changelist_view()</code>: inyecta <code>config = TorneoConfig.get()</code> al contexto del template</li>
+  <li>Sin permisos add ni delete</li>
+</ul>
+
+<h3>PerfilAdmin</h3>
+<ul>
+  <li>Completamente de solo lectura: <code>has_add/delete/change_permission</code> retornan <code>False</code></li>
+  <li><code>list_display</code>: nombre, email, puntos (badge verde), pred grupos, pred elim</li>
+  <li><code>tabla_predicciones</code>: método que genera HTML de tabla con todas las predicciones del participante incluyendo resultado real y puntos. Usa <code>mark_safe()</code> para inyectar el HTML seguro.</li>
+</ul>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="comandos">
+<h2>Comandos útiles</h2>
+<table>
+  <tr><th>Propósito</th><th>Comando</th></tr>
+  <tr><td>Iniciar servidor de desarrollo</td><td><code>python manage.py runserver</code></td></tr>
+  <tr><td>Crear nuevas migraciones</td><td><code>python manage.py makemigrations</code></td></tr>
+  <tr><td>Aplicar migraciones</td><td><code>python manage.py migrate</code></td></tr>
+  <tr><td>Poblar 48 países + 104 partidos</td><td><code>python manage.py poblar_mundial</code></td></tr>
+  <tr><td>Crear superusuario admin</td><td><code>python manage.py createsuperuser</code></td></tr>
+  <tr><td>Shell Python interactivo con ORM</td><td><code>python manage.py shell</code></td></tr>
+  <tr><td>Ver todas las migraciones</td><td><code>python manage.py showmigrations</code></td></tr>
+  <tr><td>Conectar a PostgreSQL por terminal</td><td><code>psql -U postgres -h 127.0.0.1 -d pollaf_db</code></td></tr>
+  <tr><td>Listar todos los partidos (SQL)</td><td><code>SELECT numero, fase, label_local, label_visitante FROM core_partido ORDER BY numero;</code></td></tr>
+  <tr><td>Ver ranking (SQL)</td><td><code>SELECT nombre_completo, puntos_totales FROM core_perfilusuario ORDER BY puntos_totales DESC;</code></td></tr>
+  <tr><td>Matar procesos Python viejos (Linux)</td><td><code>pkill -f "python manage.py"</code></td></tr>
+  <tr><td>Recalcular puntos manualmente (shell)</td><td><code>from core.scoring import calcular_puntos_partido; from core.models import Partido; calcular_puntos_partido(Partido.objects.get(numero=1))</code></td></tr>
+</table>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="settings">
+<h2>Settings Django — variables clave</h2>
+<pre><code><span class="cm"># pollaf/settings.py (extracto)</span>
+
+DATABASES = {
+    <span class="str">'default'</span>: {
+        <span class="str">'ENGINE'</span>: <span class="str">'django.db.backends.postgresql'</span>,
+        <span class="str">'NAME'</span>:   <span class="str">'pollaf_db'</span>,
+        <span class="str">'USER'</span>:   <span class="str">'postgres'</span>,
+        <span class="str">'PASSWORD'</span>: <span class="str">'admin'</span>,
+        <span class="str">'HOST'</span>:   <span class="str">'127.0.0.1'</span>,
+        <span class="str">'PORT'</span>:   <span class="str">'5432'</span>,
+    }
+}
+
+INSTALLED_APPS = [
+    <span class="str">'django.contrib.admin'</span>,
+    <span class="str">'django.contrib.auth'</span>,         <span class="cm"># User, auth</span>
+    <span class="str">'django.contrib.contenttypes'</span>,
+    <span class="str">'django.contrib.sessions'</span>,       <span class="cm"># sesiones</span>
+    <span class="str">'django.contrib.messages'</span>,       <span class="cm"># mensajes flash</span>
+    <span class="str">'django.contrib.staticfiles'</span>,
+    <span class="str">'core'</span>,                          <span class="cm"># nuestra app</span>
+]
+
+LOGIN_URL = <span class="str">'/login/'</span>              <span class="cm"># redirección si @login_required falla</span>
+DEFAULT_AUTO_FIELD = <span class="str">'django.db.models.BigAutoField'</span>
+LANGUAGE_CODE = <span class="str">'es-co'</span>
+TIME_ZONE = <span class="str">'America/Bogota'</span>
+USE_TZ = <span class="kw">True</span></code></pre>
+
+<h3>CSRF</h3>
+<p>Todos los formularios POST incluyen <code>{% csrf_token %}</code>. Django verifica el token automáticamente; si falta o no coincide, retorna 403. Las vistas personalizadas del admin usan <code>admin_site.admin_view()</code> que incluye verificación CSRF.</p>
+
+<h3>Sesiones</h3>
+<p>Almacenadas en la BD (<code>django_session</code> table). El ID de sesión va en cookie <code>sessionid</code> (HTTP-only). Expiración configurable con <code>SESSION_COOKIE_AGE</code> (default 2 semanas).</p>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<section id="estado">
+<h2>Estado actual del proyecto</h2>
+<table>
+  <tr><th>Módulo / Feature</th><th>Estado</th></tr>
+  <tr><td>Modelos (Pais, Partido, PerfilUsuario, Prediccion, TorneoConfig)</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>48 países y 104 partidos cargados en PostgreSQL</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Registro con validación @usa.edu.co</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Login / Logout con separación admin vs participante</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Predicciones de grupos — tabs A-L con flags</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Botón "Datos de prueba" (72 predicciones aleatorias)</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Bracket eliminatorio en cascada desde predicciones de grupos</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Predicciones eliminatorias con clasificado en caso de empate</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Tabla de 495 combinaciones de mejores terceros FIFA</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Solver backtracking para terceros no cubiertos por tabla</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Cálculo automático de puntos al ingresar resultado real</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Ranking global en tiempo real</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Panel admin restringido (solo marcadores, no equipos ni puntos)</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Bloqueo del torneo desde admin</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Página de estado real del torneo con flags y tabla posiciones</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>clasificado_real para empates en eliminatorias (admin)</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Banderas reales (flagcdn.com CDN, no emojis)</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Template tags: get_item, saved_in_group, flag_url, puntos_*</td><td><span class="badge bg">Completo</span></td></tr>
+</table>
+
+<hr>
+<p style="font-size:.83rem;color:#999;text-align:center;">
+  PollaF — Documentación técnica completa — Django 6.0.4 · PostgreSQL 16 · Python 3.12<br>
+  Universidad de América · predicciones@usa.edu.co
+</p>
+</section>
+
+</main>
+
+<script>
+const sections = document.querySelectorAll('section[id]');
+const links = document.querySelectorAll('nav a[href^="#"]');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const id = e.target.id;
+      links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + id));
+    }
+  });
+}, {rootMargin: '-20% 0px -70% 0px'});
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

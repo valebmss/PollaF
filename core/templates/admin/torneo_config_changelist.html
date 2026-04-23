@@ -1,0 +1,46 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div style="max-width:600px;margin:30px auto;">
+
+  {% if config.bloqueado %}
+  <div style="background:#f8d7da;border:2px solid #dc3545;border-radius:12px;padding:28px;text-align:center;margin-bottom:24px;">
+    <div style="font-size:2.5rem;margin-bottom:10px;">🔒</div>
+    <h2 style="color:#721c24;margin-bottom:8px;">Torneo BLOQUEADO</h2>
+    <p style="color:#721c24;">Los participantes no pueden cambiar sus predicciones.</p>
+    {% if config.bloqueado_en %}
+    <p style="color:#999;font-size:.85rem;margin-top:8px;">
+      Bloqueado el {{ config.bloqueado_en|date:"d/m/Y H:i" }}
+    </p>
+    {% endif %}
+    <a href="{% url 'admin:desbloquear_torneo' %}"
+       style="display:inline-block;margin-top:18px;padding:10px 28px;
+              background:#6c757d;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;"
+       onclick="return confirm('¿Desbloquear el torneo? Los participantes podrán editar sus predicciones.')">
+      Desbloquear torneo
+    </a>
+  </div>
+
+  {% else %}
+  <div style="background:#d4edda;border:2px solid #28a745;border-radius:12px;padding:28px;text-align:center;margin-bottom:24px;">
+    <div style="font-size:2.5rem;margin-bottom:10px;">🟢</div>
+    <h2 style="color:#155724;margin-bottom:8px;">Torneo ABIERTO</h2>
+    <p style="color:#155724;">Los participantes pueden editar sus predicciones libremente.</p>
+  </div>
+
+  <div style="background:#fff3cd;border:2px solid #ffc107;border-radius:12px;padding:24px;text-align:center;">
+    <h3 style="color:#856404;margin-bottom:12px;">Iniciar / Simular inicio del torneo</h3>
+    <p style="color:#856404;font-size:.9rem;margin-bottom:18px;">
+      Al bloquear, ningún participante podrá modificar sus predicciones.<br>
+      Hazlo justo antes de que empiece el primer partido.
+    </p>
+    <a href="{% url 'admin:bloquear_torneo' %}"
+       style="display:inline-block;padding:12px 36px;background:#dc3545;color:#fff;
+              border-radius:8px;text-decoration:none;font-weight:700;font-size:1rem;"
+       onclick="return confirm('¿Bloquear el torneo? Los participantes ya no podrán editar sus predicciones.')">
+      🔒 Bloquear torneo — iniciar competencia
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

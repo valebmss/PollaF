@@ -1,0 +1,209 @@
+{% extends 'core/base.html' %}
+{% block title %}Eliminatorias — PollaF 2026{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Tabs */
+  .tabs { display: flex; gap: 6px; margin-bottom: 24px; flex-wrap: wrap; }
+  .tab-btn {
+    padding: 8px 18px; border-radius: 20px; border: 2px solid var(--borde);
+    background: #fff; font-size: .88rem; font-weight: 600; cursor: pointer;
+    color: #666; transition: all .15s;
+  }
+  .tab-btn.active, .tab-btn:hover {
+    background: var(--verde); color: #fff; border-color: var(--verde);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Match rows */
+  .fase-bloque { margin-bottom: 8px; }
+  .fase-header {
+    background: var(--verde); color: #fff; padding: 11px 20px;
+    border-radius: 8px 8px 0 0; font-weight: 700; font-size: .95rem;
+  }
+  .partidos-fase {
+    background: #fff; border-radius: 0 0 8px 8px;
+    border: 1px solid var(--borde); border-top: none; overflow: hidden;
+  }
+  .partido-row {
+    display: grid;
+    grid-template-columns: 1fr 68px 26px 68px 1fr;
+    align-items: center; padding: 11px 20px;
+    border-bottom: 1px solid var(--borde); gap: 8px;
+  }
+  .partido-row:last-child { border-bottom: none; }
+  .equipo-local  { text-align: right; font-weight: 600; font-size: .9rem; }
+  .equipo-visit  { text-align: left;  font-weight: 600; font-size: .9rem; }
+  .equipo-tbd    { color: #bbb; font-style: italic; }
+  .vs { text-align: center; color: #aaa; font-size: .82rem; font-weight: 700; }
+  .gol-input {
+    width: 100%; padding: 7px 4px; text-align: center;
+    border: 1.5px solid var(--borde); border-radius: 6px;
+    font-size: 1.05rem; font-weight: 700; color: var(--verde);
+  }
+  .gol-input:focus { outline: none; border-color: var(--verde2); }
+  .gol-input:disabled { background: #f5f5f5; color: #ccc; }
+
+  /* Penales */
+  .penales-row {
+    grid-column: 1 / -1;
+    display: none; align-items: center; gap: 8px;
+    padding: 6px 0 2px; font-size: .83rem; color: #666;
+  }
+  .penales-row.visible { display: flex; }
+  .penales-row select {
+    flex: 1; padding: 5px 10px; border: 1.5px solid var(--borde); border-radius: 6px;
+    font-size: .88rem; color: var(--verde); font-weight: 600; cursor: pointer;
+  }
+  .penales-label { white-space: nowrap; font-weight: 600; }
+
+  .save-btn {
+    display: block; width: calc(100% - 40px); margin: 14px 20px;
+    padding: 10px; background: var(--verde); color: #fff;
+    border: none; border-radius: 8px; font-size: .92rem;
+    font-weight: 600; cursor: pointer; transition: background .15s;
+  }
+  .save-btn:hover { background: var(--verde2); }
+
+  /* Info banner */
+  .info-banner {
+    background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px;
+    padding: 14px 20px; margin-bottom: 20px; font-size: .88rem; color: #856404;
+  }
+
+  /* Resumen cards */
+  .resumen { display: flex; gap: 14px; margin-bottom: 28px; flex-wrap: wrap; }
+  .res-card {
+    flex: 1; min-width: 130px; background: #fff; border-radius: 10px;
+    padding: 16px 20px; text-align: center; border: 1px solid var(--borde);
+  }
+  .res-card .num { font-size: 1.9rem; font-weight: 700; color: var(--verde); }
+  .res-card .lbl { font-size: .8rem; color: #888; margin-top: 2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom:20px;">Bracket Eliminatorio — PollaF 2026</h2>
+
+{% if total_pred_gr < 72 %}
+<div class="info-banner">
+  Tienes {{ total_pred_gr }}/72 predicciones de grupos guardadas. Los equipos en el bracket se calculan a partir de tus predicciones de grupos — entre mas completo, mas preciso el bracket.
+</div>
+{% endif %}
+
+<!-- Tabs -->
+<div class="tabs">
+  {% for fase in fases_display %}
+  <button class="tab-btn {% if forloop.first %}active{% endif %}"
+          onclick="showTab('{{ fase.clave }}')">
+    {{ fase.nombre }}
+  </button>
+  {% endfor %}
+</div>
+
+{% for fase in fases_display %}
+<div class="tab-panel {% if forloop.first %}active{% endif %}" id="tab-{{ fase.clave }}">
+  <div class="fase-bloque">
+    <form method="post" id="form-{{ fase.clave }}">
+      {% csrf_token %}
+      <input type="hidden" name="fase" value="{{ fase.clave }}">
+
+      <div class="partidos-fase">
+        {% for m in fase.matches %}
+        <div class="partido-row" id="row-{{ m.partido.id }}">
+
+          <div class="equipo-local {% if not m.local %}equipo-tbd{% endif %}">
+            {% if m.local %}{{ m.local.nombre }}{% else %}{{ m.partido.label_local }}{% endif %}
+          </div>
+
+          <input class="gol-input" type="number" min="0" max="20"
+                 name="local_{{ m.partido.id }}"
+                 id="gl_{{ m.partido.id }}"
+                 value="{{ m.pred.goles_local|default:'' }}"
+                 placeholder="–"
+                 onchange="checkDraw({{ m.partido.id }}, {{ m.local.id|default:'null' }}, {{ m.visitante.id|default:'null' }})">
+
+          <div class="vs">vs</div>
+
+          <input class="gol-input" type="number" min="0" max="20"
+                 name="visitante_{{ m.partido.id }}"
+                 id="gv_{{ m.partido.id }}"
+                 value="{{ m.pred.goles_visitante|default:'' }}"
+                 placeholder="–"
+                 onchange="checkDraw({{ m.partido.id }}, {{ m.local.id|default:'null' }}, {{ m.visitante.id|default:'null' }})">
+
+          <div class="equipo-visit {% if not m.visitante %}equipo-tbd{% endif %}">
+            {% if m.visitante %}{{ m.visitante.nombre }}{% else %}{{ m.partido.label_visitante }}{% endif %}
+          </div>
+
+          <!-- Penales: aparece solo si marcador es empate -->
+          <div class="penales-row {% if m.pred and m.pred.goles_local == m.pred.goles_visitante and m.pred.goles_local != None %}visible{% endif %}"
+               id="pen-{{ m.partido.id }}">
+            <span class="penales-label">Clasifica en penales:</span>
+            <select name="clasi_{{ m.partido.id }}" id="clasi_{{ m.partido.id }}">
+              <option value="">-- elige --</option>
+              {% if m.local %}
+              <option value="{{ m.local.id }}"
+                {% if m.pred.clasificado_pred.id == m.local.id %}selected{% endif %}>
+                {{ m.local.nombre }}
+              </option>
+              {% endif %}
+              {% if m.visitante %}
+              <option value="{{ m.visitante.id }}"
+                {% if m.pred.clasificado_pred.id == m.visitante.id %}selected{% endif %}>
+                {{ m.visitante.nombre }}
+              </option>
+              {% endif %}
+            </select>
+          </div>
+
+        </div>
+        {% endfor %}
+
+        <button type="submit" class="save-btn">
+          Guardar {{ fase.nombre }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showTab(clave) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + clave).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function checkDraw(id, localId, visitaId) {
+  const gl = parseInt(document.getElementById('gl_' + id).value);
+  const gv = parseInt(document.getElementById('gv_' + id).value);
+  const pen = document.getElementById('pen-' + id);
+  const sel = document.getElementById('clasi_' + id);
+
+  if (!isNaN(gl) && !isNaN(gv) && gl === gv && localId && visitaId) {
+    pen.classList.add('visible');
+  } else {
+    pen.classList.remove('visible');
+    if (sel) sel.value = '';
+  }
+}
+
+// On load: sync all draw detectors
+document.addEventListener('DOMContentLoaded', function() {
+  {% for fase in fases_display %}
+  {% for m in fase.matches %}
+  checkDraw({{ m.partido.id }},
+    {{ m.local.id|default:'null' }},
+    {{ m.visitante.id|default:'null' }});
+  {% endfor %}
+  {% endfor %}
+});
+</script>
+{% endblock %}

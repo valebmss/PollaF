@@ -1,0 +1,85 @@
+{% extends 'core/base.html' %}
+{% block title %}Ranking — PollaF 2026{% endblock %}
+
+{% block extra_css %}
+<style>
+  .ranking-table {
+    width: 100%; border-collapse: collapse; background: #fff;
+    border-radius: 12px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  }
+  .ranking-table th {
+    background: var(--verde); color: #fff;
+    padding: 13px 18px; text-align: left; font-size: .88rem; font-weight: 700;
+  }
+  .ranking-table th.num { text-align: center; width: 52px; }
+  .ranking-table th.pts { text-align: center; }
+  .ranking-table td {
+    padding: 12px 18px; border-bottom: 1px solid var(--borde);
+    font-size: .9rem;
+  }
+  .ranking-table tr:last-child td { border-bottom: none; }
+  .ranking-table td.pos {
+    text-align: center; font-weight: 700; color: #888; font-size: .88rem;
+  }
+  .ranking-table td.pts {
+    text-align: center; font-weight: 700; font-size: 1.1rem; color: var(--verde);
+  }
+  .ranking-table td.preds { text-align: center; color: #999; font-size: .85rem; }
+  .ranking-table tr.yo { background: #f0faf4; }
+  .ranking-table tr.yo td { font-weight: 600; }
+  .medal-1 { color: #FFD700; font-size: 1.2rem; }
+  .medal-2 { color: #C0C0C0; font-size: 1.2rem; }
+  .medal-3 { color: #CD7F32; font-size: 1.2rem; }
+
+  .stats-bar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .stat-chip {
+    background: #fff; border: 1px solid var(--borde); border-radius: 8px;
+    padding: 12px 20px; font-size: .88rem; color: #555;
+  }
+  .stat-chip strong { color: var(--verde); font-size: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom:20px;">Ranking Global</h2>
+
+<div class="stats-bar">
+  <div class="stat-chip">Participantes: <strong>{{ tabla|length }}</strong></div>
+  <div class="stat-chip">Partidos jugados: <strong>{{ total_jugados }}/104</strong></div>
+</div>
+
+{% if tabla %}
+<table class="ranking-table">
+  <thead>
+    <tr>
+      <th class="num">#</th>
+      <th>Nombre</th>
+      <th>Correo</th>
+      <th class="pts">Puntos</th>
+      <th class="pts">Predicciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for fila in tabla %}
+    <tr {% if fila.es_yo %}class="yo"{% endif %}>
+      <td class="pos">
+        {% if fila.pos == 1 %}<span class="medal-1">1</span>
+        {% elif fila.pos == 2 %}<span class="medal-2">2</span>
+        {% elif fila.pos == 3 %}<span class="medal-3">3</span>
+        {% else %}{{ fila.pos }}{% endif %}
+      </td>
+      <td>{{ fila.nombre }}{% if fila.es_yo %} <span style="font-size:.78rem;color:var(--verde);">(tú)</span>{% endif %}</td>
+      <td style="color:#888; font-size:.85rem;">{{ fila.email }}</td>
+      <td class="pts">{{ fila.puntos }}</td>
+      <td class="preds">{{ fila.predicciones }}/104</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="card" style="text-align:center; color:#888; padding:40px;">
+  Aún no hay participantes registrados.
+</div>
+{% endif %}
+{% endblock %}

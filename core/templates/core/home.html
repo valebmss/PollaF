@@ -1,0 +1,244 @@
+{% extends 'core/base.html' %}
+{% load core_extras %}
+{% block title %}Predicciones Grupos — PollaF 2026{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Barra superior ──────────────────────────── */
+.top-bar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: #fff; border-radius: 10px; padding: 12px 18px;
+  border: 1px solid var(--borde); margin-bottom: 18px;
+}
+.top-stat .n { font-size: 1.4rem; font-weight: 800; color: var(--verde); line-height: 1; }
+.top-stat .l { font-size: .7rem; color: #aaa; }
+.divider { width: 1px; background: var(--borde); height: 32px; }
+.progress-wrap { flex: 1; min-width: 140px; }
+.prog-label { font-size: .75rem; color: #888; margin-bottom: 3px; }
+.prog-bg { height: 7px; background: #eee; border-radius: 4px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--verde); border-radius: 4px; }
+.btn-prueba {
+  background: #fff8e1; border: 1.5px solid #ffca28; color: #795548;
+  padding: 6px 12px; border-radius: 7px; font-size: .78rem;
+  font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.btn-prueba:hover { background: #fff3cd; }
+
+.bloqueado-banner {
+  background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px;
+  padding: 10px 16px; margin-bottom: 14px; color: #721c24;
+  font-size: .85rem; font-weight: 600;
+}
+
+/* ── Pestañas de grupo ───────────────────────── */
+.group-tabs {
+  display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 16px;
+}
+.gtab {
+  width: 44px; height: 36px; border: 2px solid var(--borde);
+  background: #fff; border-radius: 8px; font-weight: 800; font-size: .85rem;
+  color: #888; cursor: pointer; transition: all .12s;
+  display: flex; align-items: center; justify-content: center; position: relative;
+}
+.gtab:hover { border-color: var(--verde); color: var(--verde); }
+.gtab.active { background: var(--verde); color: #fff; border-color: var(--verde); }
+.gtab .dot {
+  position: absolute; top: 3px; right: 3px;
+  width: 7px; height: 7px; border-radius: 50%; background: #28a745;
+}
+.gtab.partial .dot { background: #ffc107; }
+
+/* ── Panel de grupo ──────────────────────────── */
+.group-panel { display: none; }
+.group-panel.active { display: block; }
+
+.grupo-card {
+  background: #fff; border-radius: 10px;
+  border: 1px solid var(--borde); overflow: hidden;
+  max-width: 560px; margin: 0 auto;
+}
+.grupo-head {
+  background: var(--verde); color: #fff;
+  padding: 9px 16px; display: flex; justify-content: space-between; align-items: center;
+}
+.grupo-head .titulo { font-weight: 800; font-size: .9rem; letter-spacing: .05em; }
+.grupo-head .info   { font-size: .75rem; opacity: .75; }
+
+/* ── Fila de partido ─────────────────────────── */
+.match-row {
+  display: flex; align-items: center;
+  padding: 7px 14px; border-bottom: 1px solid #f2f2f2;
+  gap: 8px;
+}
+.match-row:last-of-type { border-bottom: none; }
+
+.team {
+  flex: 1; display: flex; align-items: center; gap: 6px;
+}
+.team.local { justify-content: flex-end; flex-direction: row-reverse; }
+.team img { width: 24px; height: 18px; border-radius: 2px; object-fit: cover; flex-shrink: 0; }
+.team .tname { font-size: .82rem; font-weight: 700; color: #222; white-space: nowrap; }
+
+.scores-wrap { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.score-in {
+  width: 36px; height: 36px; text-align: center;
+  font-size: 1.05rem; font-weight: 800; color: var(--verde);
+  background: #f4f9f6; border: 2px solid #dde;
+  border-radius: 7px; padding: 0;
+  -moz-appearance: textfield; appearance: none;
+  transition: border-color .12s;
+}
+.score-in:focus { outline: none; border-color: var(--verde2); background: #fff; }
+.score-in:disabled { background: #f7f7f7; color: #ccc; border-color: #eee; cursor: not-allowed; }
+.score-in::-webkit-outer-spin-button,
+.score-in::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.score-sep { font-size: .85rem; color: #ccc; font-weight: 800; }
+
+.pts-badge {
+  font-size: .7rem; font-weight: 700; padding: 2px 6px;
+  border-radius: 8px; white-space: nowrap; flex-shrink: 0;
+}
+
+/* ── Botón guardar ───────────────────────────── */
+.save-btn {
+  display: block; width: calc(100% - 28px); margin: 9px 14px;
+  padding: 9px; border: none; border-radius: 7px;
+  background: var(--verde); color: #fff;
+  font-size: .87rem; font-weight: 700; cursor: pointer;
+  transition: background .13s;
+}
+.save-btn:hover { background: var(--verde2); }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom:14px;font-size:1.15rem;">Predicciones &mdash; Fase de Grupos</h2>
+
+{% if bloqueado %}
+<div class="bloqueado-banner">🔒 El torneo ya comenzó — predicciones bloqueadas.</div>
+{% endif %}
+
+<!-- Barra superior -->
+<div class="top-bar">
+  <div class="top-stat">
+    <div class="n">{{ perfil.puntos_totales }}</div>
+    <div class="l">Mis puntos</div>
+  </div>
+  <div class="divider"></div>
+  <div class="top-stat">
+    <div class="n">{{ total_jugados }}</div>
+    <div class="l">Jugados</div>
+  </div>
+  <div class="divider"></div>
+  <div class="progress-wrap">
+    <div class="prog-label">Grupos: <strong>{{ total_pred }}/72</strong></div>
+    <div class="prog-bg">
+      <div class="prog-fill" style="width:{% widthratio total_pred 72 100 %}%"></div>
+    </div>
+  </div>
+  {% if not bloqueado %}
+  <form method="post" action="{% url 'core:llenar_prueba' %}"
+        onsubmit="return confirm('¿Llenar con datos de prueba?')">
+    {% csrf_token %}
+    <button type="submit" class="btn-prueba">Datos de prueba</button>
+  </form>
+  {% endif %}
+</div>
+
+<!-- Pestañas A-L -->
+{% regroup partidos_grupos by grupo as grupos_list %}
+
+<div class="group-tabs">
+  {% for g in grupos_list %}
+    {% with saved=predicciones_map|saved_in_group:g.list %}
+    <button class="gtab {% if forloop.first %}active{% endif %} {% if saved > 0 and saved < 6 %}partial{% endif %}"
+            id="tab-{{ g.grouper }}"
+            onclick="showGroup('{{ g.grouper }}')">
+      {{ g.grouper }}
+      {% if saved == 6 %}<span class="dot"></span>{% elif saved > 0 %}<span class="dot"></span>{% endif %}
+    </button>
+    {% endwith %}
+  {% endfor %}
+</div>
+
+<!-- Paneles de grupo -->
+{% for g in grupos_list %}
+  {% with saved=predicciones_map|saved_in_group:g.list %}
+  <div class="group-panel {% if forloop.first %}active{% endif %}" id="panel-{{ g.grouper }}">
+    <div class="grupo-card">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="accion" value="guardar_grupo">
+        <input type="hidden" name="grupo" value="{{ g.grouper }}">
+
+        <div class="grupo-head">
+          <span class="titulo">GRUPO {{ g.grouper }}</span>
+          <span class="info">{{ saved }}/6 guardados</span>
+        </div>
+
+        {% for partido in g.list %}
+          {% with pred=predicciones_map|get_item:partido.id %}
+          <div class="match-row">
+
+            <div class="team local">
+              <img src="{{ partido.equipo_local|flag_url }}"
+                   alt="{{ partido.equipo_local.codigo }}"
+                   onerror="this.style.display='none'">
+              <span class="tname">{{ partido.equipo_local.nombre }}</span>
+            </div>
+
+            <div class="scores-wrap">
+              <input class="score-in" type="number" min="0" max="20"
+                     name="local_{{ partido.id }}"
+                     value="{{ pred.goles_local|default:'' }}"
+                     placeholder="–"
+                     {% if bloqueado or partido.jugado %}disabled{% endif %}>
+              <span class="score-sep">-</span>
+              <input class="score-in" type="number" min="0" max="20"
+                     name="visitante_{{ partido.id }}"
+                     value="{{ pred.goles_visitante|default:'' }}"
+                     placeholder="–"
+                     {% if bloqueado or partido.jugado %}disabled{% endif %}>
+            </div>
+
+            <div class="team">
+              <img src="{{ partido.equipo_visitante|flag_url }}"
+                   alt="{{ partido.equipo_visitante.codigo }}"
+                   onerror="this.style.display='none'">
+              <span class="tname">{{ partido.equipo_visitante.nombre }}</span>
+            </div>
+
+            <!-- Resultado -->
+            {% if partido.jugado and pred and pred.puntos is not None %}
+              <span class="pts-badge"
+                    style="background:{{ pred.puntos|puntos_bg }};color:{{ pred.puntos|puntos_color }}">
+                {{ pred.puntos|puntos_icono }}
+              </span>
+            {% elif partido.jugado %}
+              <span class="pts-badge" style="background:#f0f0f0;color:#bbb">sin pred</span>
+            {% endif %}
+
+          </div>
+          {% endwith %}
+        {% endfor %}
+
+        {% if not bloqueado %}
+        <button type="submit" class="save-btn">Guardar Grupo {{ g.grouper }}</button>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+  {% endwith %}
+{% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showGroup(letra) {
+  document.querySelectorAll('.group-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.gtab').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + letra).classList.add('active');
+  document.getElementById('tab-' + letra).classList.add('active');
+}
+</script>
+{% endblock %}

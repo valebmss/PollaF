@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}PollaF Mundial 2026{% endblock %}</title>
+  <style>
+    :root {
+      --verde: #1a7f4b; --verde2: #25a96a; --gris: #f4f6f8;
+      --borde: #dde1e7; --texto: #1c1e21;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--gris); color: var(--texto); min-height: 100vh; }
+
+    /* Navbar */
+    header {
+      background: var(--verde); color: #fff; padding: 0 32px;
+      display: flex; align-items: center; justify-content: space-between; height: 58px;
+      position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    header .brand { font-size: 1.3rem; font-weight: 700; letter-spacing: .03em; text-decoration: none; color: #fff; }
+    header nav a {
+      color: rgba(255,255,255,.85); text-decoration: none;
+      margin-left: 20px; font-size: .9rem; transition: color .15s;
+    }
+    header nav a:hover { color: #fff; }
+    header nav a.active { color: #fff; font-weight: 700; border-bottom: 2px solid rgba(255,255,255,.7); }
+
+    /* Container */
+    .container { max-width: 1100px; margin: 36px auto; padding: 0 20px; }
+
+    /* Messages */
+    .messages { list-style: none; margin-bottom: 20px; }
+    .messages li {
+      padding: 12px 18px; border-radius: 8px; margin-bottom: 8px; font-size: .92rem;
+    }
+    .messages .success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+    .messages .error   { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+    .messages .info    { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
+
+    /* Cards */
+    .card {
+      background: #fff; border-radius: 12px; padding: 28px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 24px;
+    }
+    .card h2 { font-size: 1.2rem; color: var(--verde); margin-bottom: 18px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-block; padding: 10px 24px; border-radius: 8px;
+      font-size: .95rem; font-weight: 600; cursor: pointer; border: none;
+      text-decoration: none; transition: opacity .15s;
+    }
+    .btn:hover { opacity: .88; }
+    .btn-primary { background: var(--verde); color: #fff; }
+    .btn-secondary { background: #e2e6ea; color: #333; }
+    .btn-sm { padding: 6px 14px; font-size: .85rem; }
+
+    /* Forms */
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: .88rem; font-weight: 600; margin-bottom: 6px; color: #444; }
+    .form-group input {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--borde);
+      border-radius: 8px; font-size: .95rem; transition: border-color .15s;
+    }
+    .form-group input:focus { outline: none; border-color: var(--verde2); }
+    .form-group .errorlist { color: #dc3545; font-size: .83rem; margin-top: 4px; list-style: none; }
+
+    footer {
+      text-align: center; padding: 24px; color: #999; font-size: .82rem; margin-top: 40px;
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<header>
+  <a class="brand" href="{% url 'core:home' %}">PollaF 2026</a>
+  <nav>
+    {% if user.is_authenticated %}
+      <a href="{% url 'core:home' %}">Grupos</a>
+      <a href="{% url 'core:eliminatorias' %}">Eliminatorias</a>
+      <a href="{% url 'core:mundial' %}">Mundial</a>
+      <a href="{% url 'core:ranking' %}">Ranking</a>
+      <a href="{% url 'core:logout' %}">Salir ({{ user.perfil.nombre_completo|truncatewords:1 }})</a>
+    {% else %}
+      <a href="{% url 'core:login' %}">Ingresar</a>
+      <a href="{% url 'core:registro' %}">Registrarse</a>
+    {% endif %}
+  </nav>
+</header>
+
+<div class="container">
+  {% if messages %}
+    <ul class="messages">
+      {% for msg in messages %}
+        <li class="{{ msg.tags }}">{{ msg }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</div>
+
+<footer>PollaF &mdash; Predicciones Mundial 2026 &mdash; Universidad de América</footer>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

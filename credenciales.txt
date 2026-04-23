@@ -1,0 +1,16 @@
+==== CREDENCIALES POSTGRESQL - POLLAF ====
+
+Host:     127.0.0.1
+Puerto:   5432
+Base de datos: pollaf_db
+Usuario:  postgres
+Contraseña: admin
+
+Conexión psql:
+  psql -U postgres -h 127.0.0.1 -p 5432 -d pollaf_db
+
+String de conexión Django:
+  postgresql://postgres:admin@127.0.0.1:5432/pollaf_db
+
+pgAdmin: abrir con usuario postgres / contraseña admin
+==========================================

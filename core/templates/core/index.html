@@ -1,0 +1,16 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Preguntas - PollaF{% endblock %}
+
+{% block content %}
+<h2>Preguntas disponibles</h2>
+{% if preguntas %}
+    <ul>
+        {% for pregunta in preguntas %}
+            <li><a href="{% url 'core:detalle' pregunta.id %}">{{ pregunta.texto }}</a></li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No hay preguntas disponibles. Agrega una desde el <a href="/admin/">panel de admin</a>.</p>
+{% endif %}
+{% endblock %}

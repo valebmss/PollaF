@@ -1,0 +1,20 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ pregunta.texto }} - PollaF{% endblock %}
+
+{% block content %}
+<h2>{{ pregunta.texto }}</h2>
+<form action="{% url 'core:votar' pregunta.id %}" method="post">
+    {% csrf_token %}
+    {% for opcion in pregunta.opciones.all %}
+        <div>
+            <input type="radio" name="opcion" id="opcion_{{ opcion.id }}" value="{{ opcion.id }}">
+            <label for="opcion_{{ opcion.id }}">{{ opcion.texto }} — {{ opcion.votos }} voto(s)</label>
+        </div>
+    {% endfor %}
+    <br>
+    <input type="submit" value="Votar">
+</form>
+<br>
+<a href="{% url 'core:index' %}">&larr; Volver</a>
+{% endblock %}
