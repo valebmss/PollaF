@@ -80,6 +80,7 @@
     {% if user.is_authenticated %}
       <a href="{% url 'core:home' %}">Grupos</a>
       <a href="{% url 'core:eliminatorias' %}">Eliminatorias</a>
+      <a href="{% url 'core:clasificacion_manual' %}">Clasificación</a>
       <a href="{% url 'core:mundial' %}">Mundial</a>
       <a href="{% url 'core:ranking' %}">Ranking</a>
       <a href="{% url 'core:logout' %}">Salir ({{ user.perfil.nombre_completo|truncatewords:1 }})</a>

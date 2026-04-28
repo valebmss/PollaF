@@ -7,8 +7,7 @@ from django.contrib import messages
 from django.db.models import Count
 
 from .forms import RegistroForm, LoginForm
-from .models import PerfilUsuario, Partido, Prediccion, Pais, TorneoConfig
-
+from .models import PerfilUsuario, Partido, Prediccion, Pais, TorneoConfig, ClasificacionManualGrupo, TerceroManual
 
 def _get_perfil(request):
     """Returns perfil or None. Staff users are redirected to /admin/."""
@@ -294,6 +293,164 @@ def llenar_prueba(request):
         )
     messages.success(request, 'Datos de prueba cargados: 72 predicciones de grupos listas.')
     return redirect('core:home')
+
+
+@login_required
+def clasificacion_manual(request):
+    if request.user.is_staff:
+        return redirect('/admin/')
+
+    perfil = _get_perfil(request)
+    if perfil is None:
+        return redirect('core:login')
+
+    if TorneoConfig.esta_bloqueado():
+        messages.error(request, 'El torneo está bloqueado. No se pueden modificar clasificaciones.')
+        return redirect('core:eliminatorias')
+
+    grupos = list('ABCDEFGHIJKL')
+
+    if request.method == 'POST':
+        accion = request.POST.get('accion')
+
+        if accion in ['guardar_grupos', 'guardar_todo']:
+            for letra in grupos:
+                ids = [
+                    request.POST.get(f'{letra}_primero'),
+                    request.POST.get(f'{letra}_segundo'),
+                    request.POST.get(f'{letra}_tercero'),
+                    request.POST.get(f'{letra}_cuarto'),
+                ]
+
+                if not all(ids):
+                    continue
+
+                if len(set(ids)) != 4:
+                    messages.error(request, f'Grupo {letra}: no puedes repetir equipos.')
+                    return redirect('core:clasificacion_manual')
+
+                try:
+                    primero, segundo, tercero, cuarto = [Pais.objects.get(id=int(x)) for x in ids]
+                except (Pais.DoesNotExist, ValueError):
+                    continue
+
+                ClasificacionManualGrupo.objects.update_or_create(
+                    usuario=perfil,
+                    grupo=letra,
+                    defaults={
+                        'primero': primero,
+                        'segundo': segundo,
+                        'tercero': tercero,
+                        'cuarto': cuarto,
+                    }
+                )
+
+            TerceroManual.objects.filter(usuario=perfil).delete()
+            messages.success(request, 'Clasificación manual de grupos guardada.')
+            return redirect('core:clasificacion_manual')
+
+        if accion == 'guardar_terceros':
+            TerceroManual.objects.filter(usuario=perfil).delete()
+
+            usados = set()
+            for pos in range(1, 13):
+                pais_id = request.POST.get(f'tercero_{pos}')
+                if not pais_id:
+                    continue
+
+                if pais_id in usados:
+                    messages.error(request, 'No puedes repetir equipos en la tabla de terceros.')
+                    return redirect('core:clasificacion_manual')
+
+                try:
+                    pais = Pais.objects.get(id=int(pais_id))
+                except (Pais.DoesNotExist, ValueError):
+                    continue
+
+                usados.add(pais_id)
+
+                TerceroManual.objects.create(
+                    usuario=perfil,
+                    posicion=pos,
+                    pais=pais,
+                    grupo=pais.grupo
+                )
+
+            messages.success(request, 'Orden manual de terceros guardado.')
+            return redirect('core:eliminatorias')
+
+        if accion == 'restaurar_auto':
+            ClasificacionManualGrupo.objects.filter(usuario=perfil).delete()
+            if accion == 'guardar_todo':
+                TerceroManual.objects.filter(usuario=perfil).delete()
+
+                usados = set()
+                for pos in range(1, 13):
+                    pais_id = request.POST.get(f'tercero_{pos}')
+                    if not pais_id:
+                        continue
+
+                    if pais_id in usados:
+                        messages.error(request, 'No puedes repetir equipos en la tabla de terceros.')
+                        return redirect('core:clasificacion_manual')
+
+                    try:
+                        pais = Pais.objects.get(id=int(pais_id))
+                    except (Pais.DoesNotExist, ValueError):
+                        continue
+
+                    usados.add(pais_id)
+
+                    TerceroManual.objects.create(
+                        usuario=perfil,
+                        posicion=pos,
+                        pais=pais,
+                        grupo=pais.grupo
+                    )
+
+                messages.success(request, 'Clasificación completa guardada.')
+                return redirect('core:eliminatorias')
+
+            TerceroManual.objects.filter(usuario=perfil).delete()
+            messages.success(request, 'Clasificación manual de grupos guardada.')
+            return redirect('core:clasificacion_manual')
+
+    from .bracket import _clasificados_grupo
+
+    grupos_data = []
+    terceros_candidatos = []
+
+    for letra in grupos:
+        equipos_grupo = list(Pais.objects.filter(grupo=letra).order_by('nombre'))
+        orden_actual = _clasificados_grupo(perfil, letra)
+
+        manual = ClasificacionManualGrupo.objects.filter(usuario=perfil, grupo=letra).first()
+
+        if len(orden_actual) >= 3:
+            terceros_candidatos.append(orden_actual[2])
+
+        grupos_data.append({
+            'letra': letra,
+            'equipos': equipos_grupo,
+            'orden_actual': orden_actual,
+            'manual': manual,
+        })
+
+    terceros_manual = {
+        t.posicion: t.pais
+        for t in TerceroManual.objects.filter(usuario=perfil).select_related('pais')
+    }
+
+    context = {
+        'perfil': perfil,
+        'grupos_data': grupos_data,
+        'terceros_candidatos': terceros_candidatos,
+        'terceros_manual': terceros_manual,
+        'posiciones_terceros': range(1, 13),
+    }
+
+    return render(request, 'core/clasificacion_manual.html', context)
+
 
 
 @login_required

@@ -1,0 +1,431 @@
+{% extends 'core/base.html' %}
+{% load core_extras %}
+{% block title %}Clasificación Manual — PollaF 2026{% endblock %}
+
+{% block extra_css %}
+<style>
+  .manual-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .grupo-manual {
+    background: #fff;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .grupo-manual h3 {
+    background: var(--verde);
+    color: #fff;
+    padding: 10px 14px;
+    font-size: .95rem;
+  }
+
+  .grupo-body {
+    padding: 14px;
+  }
+
+  .orden-row {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .orden-row label {
+    font-size: .82rem;
+    font-weight: 700;
+    color: #666;
+  }
+
+  .orden-row select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--borde);
+    border-radius: 7px;
+  }
+
+  .terceros-box {
+    background: #fff;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    padding: 18px;
+    margin-top: 28px;
+  }
+
+  .tercero-row {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 10px;
+    margin-bottom: 8px;
+    align-items: center;
+  }
+
+  .tercero-row strong {
+    font-size: .85rem;
+    color: #555;
+  }
+
+  .tercero-row select {
+    padding: 8px;
+    border: 1px solid var(--borde);
+    border-radius: 7px;
+  }
+
+  .hint {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    color: #856404;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: .88rem;
+    margin-bottom: 18px;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+
+  .sortable-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sortable-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8f9fa;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 9px 10px;
+  margin-bottom: 8px;
+  cursor: grab;
+}
+
+.sortable-item:active {
+  cursor: grabbing;
+}
+
+.drag {
+  color: #888;
+  font-weight: 700;
+}
+
+.pos {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--verde);
+  color: #fff;
+  border-radius: 50%;
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.clasifica {
+  border-color: #198754;
+  background: #eefaf2;
+}
+
+.no-clasifica {
+  opacity: .65;
+}
+
+.flag-img {
+  width: 24px;
+  height: 18px;
+  border-radius: 3px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.sortable-item.dragging {
+  opacity: .45;
+}
+
+.sortable-item.over {
+  border-color: var(--verde);
+  background: #eefaf2;
+}
+  
+</style>
+
+{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom:14px;">Clasificación manual</h2>
+
+<div class="hint">
+  Aquí puedes cambiar quién pasa en cada grupo aunque tus marcadores automáticos digan otra cosa.
+  Si guardas esta pantalla, las eliminatorias usarán este orden manual.
+</div>
+
+<form method="post" id="form-clasificacion">
+  {% csrf_token %}
+  <input type="hidden" name="accion" value="guardar_grupos">
+
+  <div class="manual-grid">
+    {% for g in grupos_data %}
+    <div class="grupo-manual">
+      <h3>Grupo {{ g.letra }}</h3>
+      <div class="grupo-body">
+        <ul class="sortable-list grupo-lista" data-grupo="{{ g.letra }}">
+          {% for equipo in g.orden_actual %}
+          <li class="sortable-item" draggable="true" data-id="{{ equipo.id }}" data-nombre="{{ equipo.nombre }}" data-grupo="{{ equipo.grupo }}" data-flag="{{ equipo|flag_url }}">
+            <span class="drag">☰</span>
+            <span class="pos"></span>
+            <img src="{{ equipo|flag_url }}" class="flag-img" onerror="this.style.display='none'">
+            <strong>{{ equipo.nombre }}</strong>
+          </li>
+          {% endfor %}
+        </ul>
+
+        <input type="hidden" name="{{ g.letra }}_primero">
+        <input type="hidden" name="{{ g.letra }}_segundo">
+        <input type="hidden" name="{{ g.letra }}_tercero">
+        <input type="hidden" name="{{ g.letra }}_cuarto">
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</form>
+
+<div class="terceros-box">
+  <h3 style="margin-bottom:10px;color:var(--verde);">Orden manual de terceros</h3>
+  <p style="font-size:.88rem;color:#666;margin-bottom:14px;">
+    Esta tabla se arma automáticamente con el 3.º de cada grupo. Arrastra para ordenar. Los primeros 8 clasifican.
+  </p>
+
+  <form method="post" id="form-terceros">
+    {% csrf_token %}
+    <input type="hidden" name="accion" value="guardar_terceros">
+
+    <ul class="sortable-list" id="lista-terceros"></ul>
+
+    {% for pos in posiciones_terceros %}
+      <input type="hidden" name="tercero_{{ pos }}">
+    {% endfor %}
+
+    <div class="actions">
+        <button type="button" class="btn btn-primary" onclick="guardarTodo()">
+            Guardar clasificación completa
+        </button>
+    </div>
+  </form>
+</div>
+
+<form method="post" style="margin-top:20px;">
+  {% csrf_token %}
+  <input type="hidden" name="accion" value="restaurar_auto">
+  <button type="submit" class="btn btn-secondary"
+          onclick="return confirm('¿Restaurar el cálculo automático?')">
+    Restaurar cálculo automático
+  </button>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+let draggedItem = null;
+
+function activarDragAndDrop(lista) {
+  lista.querySelectorAll('.sortable-item').forEach(item => {
+    item.setAttribute('draggable', 'true');
+
+    item.addEventListener('dragstart', function () {
+      draggedItem = this;
+      this.classList.add('dragging');
+    });
+
+    item.addEventListener('dragend', function () {
+      this.classList.remove('dragging');
+      document.querySelectorAll('.sortable-item.over').forEach(el => el.classList.remove('over'));
+      draggedItem = null;
+      actualizarPosiciones();
+    });
+
+    item.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      if (this !== draggedItem) this.classList.add('over');
+    });
+
+    item.addEventListener('dragleave', function () {
+      this.classList.remove('over');
+    });
+
+    item.addEventListener('drop', function (e) {
+      e.preventDefault();
+      this.classList.remove('over');
+
+      if (!draggedItem || draggedItem === this) return;
+
+      const parent = this.parentNode;
+      const items = Array.from(parent.children);
+      const draggedIndex = items.indexOf(draggedItem);
+      const targetIndex = items.indexOf(this);
+
+      if (draggedIndex < targetIndex) {
+        parent.insertBefore(draggedItem, this.nextSibling);
+      } else {
+        parent.insertBefore(draggedItem, this);
+      }
+
+      actualizarPosiciones();
+    });
+  });
+}
+
+function actualizarPosiciones() {
+  document.querySelectorAll('.grupo-lista').forEach(lista => {
+    const grupo = lista.dataset.grupo;
+    const items = Array.from(lista.querySelectorAll('.sortable-item'));
+    const campos = ['primero', 'segundo', 'tercero', 'cuarto'];
+
+    items.forEach((item, index) => {
+      const pos = item.querySelector('.pos');
+      if (pos) pos.textContent = index + 1;
+
+      const input = document.querySelector(`input[name="${grupo}_${campos[index]}"]`);
+      if (input) input.value = item.dataset.id;
+    });
+  });
+
+  actualizarTerceros();
+}
+
+function actualizarTerceros() {
+  const listaTerceros = document.getElementById('lista-terceros');
+  if (!listaTerceros) return;
+
+  const ordenAnterior = Array.from(listaTerceros.querySelectorAll('.sortable-item')).map(item => item.dataset.id);
+
+  const terceros = [];
+  document.querySelectorAll('.grupo-lista').forEach(lista => {
+    const tercerItem = lista.querySelectorAll('.sortable-item')[2];
+    if (tercerItem) {
+      terceros.push({
+        id: tercerItem.dataset.id,
+        nombre: tercerItem.dataset.nombre,
+        grupo: tercerItem.dataset.grupo,
+        flag: tercerItem.dataset.flag || ''
+      });
+    }
+  });
+
+  terceros.sort((a, b) => {
+    const ia = ordenAnterior.indexOf(a.id);
+    const ib = ordenAnterior.indexOf(b.id);
+
+    if (ia === -1 && ib === -1) return a.grupo.localeCompare(b.grupo);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
+  listaTerceros.innerHTML = '';
+
+  terceros.forEach(equipo => {
+    const li = document.createElement('li');
+    li.className = 'sortable-item';
+    li.setAttribute('draggable', 'true');
+    li.dataset.id = equipo.id;
+    li.dataset.nombre = equipo.nombre;
+    li.dataset.grupo = equipo.grupo;
+    li.dataset.flag = equipo.flag;
+
+    li.innerHTML = `
+      <span class="drag">☰</span>
+      <span class="pos"></span>
+      ${equipo.flag ? `<img src="${equipo.flag}" class="flag-img" onerror="this.style.display='none'">` : ''}
+      <strong>${equipo.nombre}</strong>
+      <small>Grupo ${equipo.grupo}</small>
+    `;
+
+    listaTerceros.appendChild(li);
+  });
+
+  activarDragAndDrop(listaTercosSeguro());
+  actualizarInputsTerceros();
+}
+
+function listaTercosSeguro() {
+  return document.getElementById('lista-terceros');
+}
+
+function actualizarInputsTerceros() {
+  const items = Array.from(document.querySelectorAll('#lista-terceros .sortable-item'));
+
+  for (let i = 1; i <= 12; i++) {
+    const input = document.querySelector(`input[name="tercero_${i}"]`);
+    if (input) input.value = '';
+  }
+
+  items.forEach((item, index) => {
+    const pos = item.querySelector('.pos');
+    if (pos) pos.textContent = index + 1;
+
+    item.classList.toggle('clasifica', index < 8);
+    item.classList.toggle('no-clasifica', index >= 8);
+
+    const input = document.querySelector(`input[name="tercero_${index + 1}"]`);
+    if (input) input.value = item.dataset.id;
+  });
+}
+
+function guardarTodo() {
+  actualizarPosiciones();
+  actualizarInputsTerceros();
+
+  const formClasificacion = document.getElementById('form-clasificacion');
+  const formTerceros = document.getElementById('form-terceros');
+
+  const data = new FormData(formClasificacion);
+
+  for (const [key, value] of new FormData(formTerceros).entries()) {
+    if (key !== 'csrfmiddlewaretoken') {
+      data.append(key, value);
+    }
+  }
+
+  data.set('accion', 'guardar_todo');
+
+  fetch(window.location.href, {
+    method: 'POST',
+    body: data,
+    headers: {
+      'X-CSRFToken': data.get('csrfmiddlewaretoken')
+    }
+  }).then(() => {
+    window.location.href = "{% url 'core:eliminatorias' %}";
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.grupo-lista').forEach(lista => activarDragAndDrop(lista));
+
+  const formClasificacion = document.getElementById('form-clasificacion');
+  const formTerceros = document.getElementById('form-terceros');
+
+  if (formClasificacion) {
+    formClasificacion.addEventListener('submit', actualizarPosiciones);
+  }
+
+  if (formTerceros) {
+    formTerceros.addEventListener('submit', actualizarInputsTerceros);
+  }
+
+  actualizarPosiciones();
+});
+</script>
+{% endblock %}

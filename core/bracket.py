@@ -2,13 +2,13 @@
 Cascade bracket computation for PollaF 2026.
 Derives predicted teams for each elimination match from user's group predictions.
 """
-from .models import Partido, Prediccion
+from .models import Partido, Prediccion, ClasificacionManualGrupo, TerceroManual
 
 
 GRUPOS_LETRAS = list('ABCDEFGHIJKL')
 
 
-def _clasificados_grupo(perfil, letra):
+def _clasificados_grupo_auto(perfil, letra):
     """Returns list of Pais sorted by predicted standing [1st, 2nd, 3rd, 4th]."""
     partidos = list(
         Partido.objects.filter(fase='GR', grupo=letra)
@@ -50,6 +50,20 @@ def _clasificados_grupo(perfil, letra):
         key=lambda x: (-x['pts'], -x['gd'], -x['gf'], -x['wins'])
     )
     return [s['pais'] for s in sorted_teams]
+
+
+def _clasificados_grupo(perfil, letra):
+    manual = (
+        ClasificacionManualGrupo.objects
+        .filter(usuario=perfil, grupo=letra)
+        .select_related('primero', 'segundo', 'tercero', 'cuarto')
+        .first()
+    )
+
+    if manual:
+        return [manual.primero, manual.segundo, manual.tercero, manual.cuarto]
+
+    return _clasificados_grupo_auto(perfil, letra)
 
 
 def _tercero_stats(perfil, equipo, letra):
@@ -129,8 +143,22 @@ def get_predicted_bracket(perfil):
             stats = _tercero_stats(perfil, equipo, letra)
             terceros_info.append({'pais': equipo, 'grupo': letra, **stats})
 
-    terceros_info.sort(key=lambda x: (-x['pts'], -x['gd'], -x['gf'], -x['wins']))
-    mejores_8 = terceros_info[:8]
+    terceros_manuales = list(
+    TerceroManual.objects
+        .filter(usuario=perfil)
+        .select_related('pais')
+        .order_by('posicion')
+    )
+
+    if terceros_manuales:
+        mejores_8 = [
+            {'pais': t.pais, 'grupo': t.grupo}
+            for t in terceros_manuales[:8]
+        ]
+    else:
+        terceros_info.sort(key=lambda x: (-x['pts'], -x['gd'], -x['gf'], -x['wins']))
+        mejores_8 = terceros_info[:8]
+
     grupos_8 = {t['grupo'] for t in mejores_8}
     terceros_pais = {t['grupo']: t['pais'] for t in mejores_8}
 

@@ -11,5 +11,5 @@ echo  http://127.0.0.1:8000
 echo.
 echo  Presiona Ctrl+C para detener el servidor.
 echo.
-python manage.py runserver
+py manage.py runserver
 pause

@@ -119,3 +119,47 @@ class Prediccion(models.Model):
 
     def __str__(self):
         return f"{self.usuario} | {self.partido} → {self.goles_local}-{self.goles_visitante}"
+    
+
+#Nueva lógica para clasificar a mano los grupos
+class ClasificacionManualGrupo(models.Model):
+    usuario = models.ForeignKey(
+        PerfilUsuario, on_delete=models.CASCADE, related_name='clasificaciones_manuales'
+    )
+    grupo = models.CharField(max_length=1)
+
+    primero = models.ForeignKey(
+        Pais, on_delete=models.CASCADE, related_name='manual_primero'
+    )
+    segundo = models.ForeignKey(
+        Pais, on_delete=models.CASCADE, related_name='manual_segundo'
+    )
+    tercero = models.ForeignKey(
+        Pais, on_delete=models.CASCADE, related_name='manual_tercero'
+    )
+    cuarto = models.ForeignKey(
+        Pais, on_delete=models.CASCADE, related_name='manual_cuarto'
+    )
+
+    class Meta:
+        unique_together = ('usuario', 'grupo')
+        ordering = ['grupo']
+
+    def __str__(self):
+        return f"{self.usuario} - Grupo {self.grupo}"
+
+
+class TerceroManual(models.Model):
+    usuario = models.ForeignKey(
+        PerfilUsuario, on_delete=models.CASCADE, related_name='terceros_manuales'
+    )
+    posicion = models.PositiveSmallIntegerField()
+    pais = models.ForeignKey(Pais, on_delete=models.CASCADE)
+    grupo = models.CharField(max_length=1)
+
+    class Meta:
+        unique_together = ('usuario', 'posicion')
+        ordering = ['posicion']
+
+    def __str__(self):
+        return f"{self.usuario} - {self.posicion}. {self.pais}"

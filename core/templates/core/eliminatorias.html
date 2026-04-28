@@ -85,6 +85,11 @@
 
 {% block content %}
 <h2 style="margin-bottom:20px;">Bracket Eliminatorio — PollaF 2026</h2>
+<p style="margin-bottom:16px;">
+  <a class="btn btn-secondary" href="{% url 'core:clasificacion_manual' %}">
+    Modificar clasificados y terceros
+  </a>
+</p>
 
 {% if total_pred_gr < 72 %}
 <div class="info-banner">
