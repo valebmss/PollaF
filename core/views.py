@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.db.models import Count
 
 from .forms import RegistroForm, LoginForm
-from .models import PerfilUsuario, Partido, Prediccion, Pais, TorneoConfig
+from .models import PerfilUsuario, Partido, Prediccion, Pais, TorneoConfig, OrdenGrupo
 
 
 def _get_perfil(request):
@@ -294,6 +294,125 @@ def llenar_prueba(request):
         )
     messages.success(request, 'Datos de prueba cargados: 72 predicciones de grupos listas.')
     return redirect('core:home')
+
+
+def _tabla_auto_grupo(perfil, letra):
+    """Calcula la tabla de posiciones de un grupo basada en predicciones del usuario."""
+    partidos = list(
+        Partido.objects.filter(fase='GR', grupo=letra)
+        .select_related('equipo_local', 'equipo_visitante')
+    )
+    preds = {
+        p.partido_id: p
+        for p in Prediccion.objects.filter(usuario=perfil, partido__in=partidos)
+    }
+    equipos = {}
+    for partido in partidos:
+        for eq in [partido.equipo_local, partido.equipo_visitante]:
+            if eq and eq.id not in equipos:
+                equipos[eq.id] = {
+                    'pais': eq, 'pts': 0, 'pj': 0,
+                    'pg': 0, 'pe': 0, 'pp': 0,
+                    'gf': 0, 'gc': 0, 'gd': 0,
+                }
+    for partido in partidos:
+        pred = preds.get(partido.id)
+        if not pred or not partido.equipo_local or not partido.equipo_visitante:
+            continue
+        gl, gv = pred.goles_local, pred.goles_visitante
+        lid, vid = partido.equipo_local.id, partido.equipo_visitante.id
+        if lid in equipos and vid in equipos:
+            equipos[lid]['pj'] += 1; equipos[vid]['pj'] += 1
+            equipos[lid]['gf'] += gl; equipos[lid]['gc'] += gv; equipos[lid]['gd'] += gl - gv
+            equipos[vid]['gf'] += gv; equipos[vid]['gc'] += gl; equipos[vid]['gd'] += gv - gl
+            if gl > gv:
+                equipos[lid]['pts'] += 3; equipos[lid]['pg'] += 1; equipos[vid]['pp'] += 1
+            elif gv > gl:
+                equipos[vid]['pts'] += 3; equipos[vid]['pg'] += 1; equipos[lid]['pp'] += 1
+            else:
+                equipos[lid]['pts'] += 1; equipos[lid]['pe'] += 1
+                equipos[vid]['pts'] += 1; equipos[vid]['pe'] += 1
+    return sorted(
+        equipos.values(),
+        key=lambda x: (-x['pts'], -x['gd'], -x['gf'])
+    )
+
+
+@login_required
+def clasificacion_grupos(request):
+    if request.user.is_staff:
+        return redirect('/admin/')
+    perfil = _get_perfil(request)
+    if perfil is None:
+        return redirect('core:login')
+
+    GRUPOS_LETRAS = list('ABCDEFGHIJKL')
+
+    if request.method == 'POST':
+        if TorneoConfig.esta_bloqueado():
+            messages.error(request, 'El torneo está bloqueado.')
+            return redirect('core:clasificacion_grupos')
+        grupo = request.POST.get('grupo')
+        if grupo and grupo in GRUPOS_LETRAS:
+            if request.POST.get('reset_grupo'):
+                OrdenGrupo.objects.filter(usuario=perfil, grupo=grupo).delete()
+                messages.success(request, f'Grupo {grupo}: restaurado al orden automático.')
+            else:
+                ids = request.POST.getlist(f'orden_{grupo}')
+                if len(ids) == 4:
+                    paises = {str(p.id): p for p in Pais.objects.filter(grupo=grupo)}
+                    if all(i in paises for i in ids) and len(set(ids)) == 4:
+                        OrdenGrupo.objects.filter(usuario=perfil, grupo=grupo).delete()
+                        for pos, pid in enumerate(ids, 1):
+                            OrdenGrupo.objects.create(
+                                usuario=perfil, grupo=grupo, posicion=pos, pais=paises[pid]
+                            )
+                        messages.success(request, f'Clasificación Grupo {grupo} guardada.')
+        return redirect('core:clasificacion_grupos')
+
+    ordenes_guardados = set(
+        OrdenGrupo.objects.filter(usuario=perfil)
+        .values_list('grupo', flat=True)
+        .distinct()
+    )
+
+    grupos_data = []
+    for letra in GRUPOS_LETRAS:
+        auto = _tabla_auto_grupo(perfil, letra)
+        manual_qs = list(
+            OrdenGrupo.objects.filter(usuario=perfil, grupo=letra)
+            .order_by('posicion')
+            .select_related('pais')
+        )
+        stats_by_id = {row['pais'].id: row for row in auto}
+
+        if len(manual_qs) == 4:
+            tabla = []
+            for m in manual_qs:
+                stats = stats_by_id.get(m.pais.id, {
+                    'pais': m.pais, 'pts': 0, 'pj': 0,
+                    'pg': 0, 'pe': 0, 'pp': 0,
+                    'gf': 0, 'gc': 0, 'gd': 0,
+                })
+                tabla.append(stats)
+            tiene_manual = True
+        else:
+            tabla = auto
+            tiene_manual = False
+
+        grupos_data.append({
+            'letra': letra,
+            'tabla': tabla,
+            'tiene_manual': tiene_manual,
+        })
+
+    context = {
+        'perfil': perfil,
+        'grupos_data': grupos_data,
+        'ordenes_guardados': ordenes_guardados,
+        'bloqueado': TorneoConfig.esta_bloqueado(),
+    }
+    return render(request, 'core/clasificacion.html', context)
 
 
 @login_required

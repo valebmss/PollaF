@@ -119,3 +119,22 @@ class Prediccion(models.Model):
 
     def __str__(self):
         return f"{self.usuario} | {self.partido} → {self.goles_local}-{self.goles_visitante}"
+
+
+class OrdenGrupo(models.Model):
+    """Orden de clasificación de grupo definido manualmente por el usuario."""
+    usuario = models.ForeignKey(
+        PerfilUsuario, on_delete=models.CASCADE, related_name='ordenes_grupo'
+    )
+    grupo = models.CharField(max_length=1)
+    posicion = models.PositiveSmallIntegerField()  # 1-4
+    pais = models.ForeignKey(
+        Pais, on_delete=models.CASCADE, related_name='ordenes_grupo'
+    )
+
+    class Meta:
+        unique_together = ('usuario', 'grupo', 'posicion')
+        ordering = ['grupo', 'posicion']
+
+    def __str__(self):
+        return f"{self.usuario} | Grupo {self.grupo} #{self.posicion}: {self.pais}"

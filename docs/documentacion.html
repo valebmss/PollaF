@@ -137,6 +137,7 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
     <li><a href="#views">Vistas — lógica detallada</a></li>
     <li><a href="#templates">Templates HTML</a></li>
     <li><a href="#templatetags">Template tags</a></li>
+    <li><a href="#clasificacion">Clasificación manual de grupos</a></li>
 
     <li class="sec">Algoritmos</li>
     <li><a href="#scoring">Cálculo de puntos</a></li>
@@ -435,6 +436,7 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
   <tr><th>Template</th><th>Qué muestra</th></tr>
   <tr><td><code>core/base.html</code></td><td><strong>El layout base.</strong> Define el HTML completo con navbar, container y footer. Todos los demás templates lo "extienden" con <code>{% extends 'core/base.html' %}</code> y solo llenan los bloques de contenido.</td></tr>
   <tr><td><code>core/home.html</code></td><td>Predicciones de la fase de grupos. Tabs A–L, un formulario por grupo, barras de progreso, botón de datos de prueba.</td></tr>
+  <tr><td><code>core/clasificacion.html</code></td><td>Tabla de clasificación de grupos editable. Muestra el orden calculado desde predicciones y permite arrastrarlo con SortableJS. El orden guardado sobreescribe el automático para el bracket.</td></tr>
   <tr><td><code>core/eliminatorias.html</code></td><td>Predicciones del bracket eliminatorio. Muestra las fases R32 → Final con los equipos calculados por bracket.py.</td></tr>
   <tr><td><code>core/mundial.html</code></td><td>Estado real del torneo (no predicciones). Muestra posiciones actuales de cada grupo y resultados reales con banderas.</td></tr>
   <tr><td><code>core/ranking.html</code></td><td>Tabla global de participantes ordenada por puntos. Resalta al usuario actual.</td></tr>
@@ -501,7 +503,8 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
 │   │   ├── 0001_initial.py
 │   │   ├── 0002_pais_partido_perfilusuario_prediccion.py
 │   │   ├── 0003_prediccion_clasificado_pred.py
-│   │   └── 0004_torneoconfig_partido_clasificado_real.py
+│   │   ├── 0004_torneoconfig_partido_clasificado_real.py
+│   │   └── 0005_orden_grupo.py      ← crea core_ordengrupo (orden manual de grupos)
 │   │
 │   ├── management/commands/
 │   │   └── poblar_mundial.py        ← carga 48 países + 104 partidos (solo 1 vez)
@@ -510,6 +513,7 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
 │       ├── core/                    ← templates de la app (páginas del usuario)
 │       │   ├── base.html            ← layout base: navbar + footer + CSS global
 │       │   ├── home.html            ← predicciones grupos (tabs A-L)
+│       │   ├── clasificacion.html   ← tabla clasificación grupos editable (drag&drop)
 │       │   ├── eliminatorias.html   ← predicciones bracket eliminatorio
 │       │   ├── mundial.html         ← estado real del torneo con flags y tabla
 │       │   ├── ranking.html         ← ranking global de participantes
@@ -631,7 +635,35 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
   <tr><td><code>puntos_totales</code></td><td>INTEGER</td><td>Se recalcula con SUM(Prediccion.puntos) cada vez que se procesa un partido</td></tr>
 </table>
 
-<h3>5. Prediccion — <code>core_prediccion</code></h3>
+<h3>5. OrdenGrupo — <code>core_ordengrupo</code></h3>
+<p>Guarda el orden de clasificación de un grupo definido manualmente por el usuario. Si existen los 4 registros de un grupo (posiciones 1–4), <code>bracket.py</code> los usa directamente en lugar del orden calculado por puntos/DG/GF. Si el usuario no ha tocado un grupo, ese grupo sigue usando el orden automático.</p>
+<pre><code><span class="kw">class</span> <span class="cls">OrdenGrupo</span>(models.Model):
+    usuario  = models.ForeignKey(PerfilUsuario, on_delete=models.CASCADE,
+                   related_name=<span class="str">'ordenes_grupo'</span>)
+    grupo    = models.CharField(max_length=<span class="num">1</span>)          <span class="cm"># "A" … "L"</span>
+    posicion = models.PositiveSmallIntegerField()       <span class="cm"># 1 = 1ro, 2 = 2do, 3 = 3ro, 4 = 4to</span>
+    pais     = models.ForeignKey(Pais, on_delete=models.CASCADE,
+                   related_name=<span class="str">'ordenes_grupo'</span>)
+
+    <span class="kw">class</span> <span class="cls">Meta</span>:
+        unique_together = (<span class="str">'usuario'</span>, <span class="str">'grupo'</span>, <span class="str">'posicion'</span>)
+        ordering = [<span class="str">'grupo'</span>, <span class="str">'posicion'</span>]</code></pre>
+
+<table class="sm">
+  <tr><th>Campo</th><th>SQL type</th><th>Constraints</th><th>Descripción</th></tr>
+  <tr><td><code>id</code></td><td>SERIAL</td><td>PK</td><td>—</td></tr>
+  <tr><td><code>usuario_id</code></td><td>INTEGER</td><td>FK→core_perfilusuario</td><td>—</td></tr>
+  <tr><td><code>grupo</code></td><td>VARCHAR(1)</td><td>NOT NULL</td><td>Letra del grupo (A–L)</td></tr>
+  <tr><td><code>posicion</code></td><td>SMALLINT</td><td>NOT NULL</td><td>1 = 1ro clasificado, 4 = eliminado</td></tr>
+  <tr><td><code>pais_id</code></td><td>INTEGER</td><td>FK→core_pais</td><td>Equipo en esa posición según el usuario</td></tr>
+  <tr><td colspan="4"><em>UNIQUE constraint en (usuario_id, grupo, posicion)</em></td></tr>
+</table>
+
+<div class="alert ai">
+  <strong>Lógica de activación:</strong> Solo se considera el orden manual si existen exactamente 4 filas para ese usuario+grupo. Si hay 0, 1, 2 o 3 filas (datos corruptos), se ignoran y se usa el orden automático. El endpoint POST de <code>/clasificacion/</code> siempre borra y reescribe las 4 filas atómicamente.
+</div>
+
+<h3>6. Prediccion — <code>core_prediccion</code></h3>
 <p>Una fila por combinación <em>usuario × partido</em>. Máximo 104 predicciones por usuario. El campo <code>puntos</code> es NULL hasta que el partido se juega; <code>clasificado_pred</code> solo se usa en fases eliminatorias cuando el usuario predice un empate.</p>
 <pre><code><span class="kw">class</span> <span class="cls">Prediccion</span>(models.Model):
     usuario          = models.ForeignKey(PerfilUsuario, on_delete=models.CASCADE,
@@ -709,6 +741,19 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
   │ bloqueado BOOLEAN            │
   │ bloqueado_en TIMESTAMPTZ NULL│
   └──────────────────────────────┘
+
+  ┌───────────────────────────────────────────┐
+  │           core_ordengrupo                 │
+  │───────────────────────────────────────────│
+  │ id PK                                    │
+  │ usuario_id FK→core_perfilusuario          │
+  │ grupo VARCHAR(1)  ← "A"…"L"              │
+  │ posicion SMALLINT ← 1–4                   │
+  │ pais_id FK→core_pais                      │
+  │ UNIQUE(usuario_id, grupo, posicion)       │
+  └───────────────────────────────────────────┘
+  Si existen los 4 registros de un usuario+grupo,
+  bracket.py los usa en lugar del orden calculado.
 </pre>
 </div>
 </section>
@@ -722,6 +767,7 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
   <tr><td><code>0002_pais_partido_perfilusuario_prediccion.py</code></td><td>Crea core_pais, core_partido, core_perfilusuario, core_prediccion</td></tr>
   <tr><td><code>0003_prediccion_clasificado_pred.py</code></td><td>Agrega FK <code>clasificado_pred_id</code> a core_prediccion</td></tr>
   <tr><td><code>0004_torneoconfig_partido_clasificado_real.py</code></td><td>Crea core_torneoconfig; agrega FK <code>clasificado_real_id</code> a core_partido</td></tr>
+  <tr><td><code>0005_orden_grupo.py</code></td><td>Crea core_ordengrupo para el orden manual de clasificación de grupos por usuario</td></tr>
 </table>
 <pre><code><span class="cm"># Aplicar todas las migraciones</span>
 python manage.py migrate
@@ -922,6 +968,12 @@ perfil = _get_perfil(request)
     <td>Predicciones fase de grupos. POST guarda predicciones de un grupo (accion=guardar_grupo).</td>
   </tr>
   <tr>
+    <td><code>/clasificacion/</code></td><td><code>core:clasificacion_grupos</code></td>
+    <td><span class="method-get">GET</span> <span class="method-post">POST</span></td>
+    <td>Login requerido</td>
+    <td>Tabla de clasificación de grupos editable. GET muestra el orden calculado (o el manual guardado). POST guarda el orden manual de un grupo (<code>grupo=A</code> + <code>orden_A[]=id1&amp;id2&amp;id3&amp;id4</code>) o lo restaura al automático si viene <code>reset_grupo=1</code>.</td>
+  </tr>
+  <tr>
     <td><code>/eliminatorias/</code></td><td><code>core:eliminatorias</code></td>
     <td><span class="method-get">GET</span> <span class="method-post">POST</span></td>
     <td>Login requerido</td>
@@ -990,6 +1042,15 @@ perfil = _get_perfil(request)
   <tr><td><code>bloqueado</code></td><td>bool</td><td>Si el torneo está bloqueado (TorneoConfig.esta_bloqueado())</td></tr>
 </table>
 
+<h4>clasificacion_grupos (GET)</h4>
+<table class="sm">
+  <tr><th>Variable</th><th>Tipo Python</th><th>Descripción</th></tr>
+  <tr><td><code>grupos_data</code></td><td>list[dict]</td><td>12 grupos. Cada dict: <code>letra</code> (A–L), <code>tabla</code> (list de dicts con pais+pts+pj+pg+pe+pp+gf+gc+gd), <code>tiene_manual</code> (bool)</td></tr>
+  <tr><td><code>ordenes_guardados</code></td><td>set[str]</td><td>Letras de grupo con orden manual guardado. Usado para el punto verde en el tab.</td></tr>
+  <tr><td><code>perfil</code></td><td>PerfilUsuario</td><td>—</td></tr>
+  <tr><td><code>bloqueado</code></td><td>bool</td><td>Si es True, SortableJS se deshabilita y no se muestran botones de guardar.</td></tr>
+</table>
+
 <h4>eliminatorias (GET)</h4>
 <table class="sm">
   <tr><th>Variable</th><th>Tipo Python</th><th>Descripción</th></tr>
@@ -1041,6 +1102,15 @@ tabla = sorted(equipos.values(), key=<span class="kw">lambda</span> x: (-x[<span
 <h3>ranking — tabla de posiciones</h3>
 <p>Usa un solo <code>annotate(count=Count('id'))</code> sobre <code>Prediccion</code> para obtener el conteo de predicciones de todos los usuarios en una sola query. Luego hace un dict Python para lookup O(1) por usuario.</p>
 
+<h3>clasificacion_grupos — orden manual de grupos</h3>
+<p>Helper privado <code>_tabla_auto_grupo(perfil, letra)</code> calcula la tabla completa con stats (pts, pj, pg, pe, pp, gf, gc, gd) desde las predicciones del usuario — igual que <code>_clasificados_grupo</code> de bracket.py pero retornando el dict completo en lugar de solo la lista de Pais.</p>
+<p>GET: para cada uno de los 12 grupos, compara si existen 4 filas en <code>OrdenGrupo</code>. Si existen, usa ese orden (y toma sus stats del dict auto para mostrar columnas). Si no, usa el orden automático. El flag <code>tiene_manual</code> controla el badge y el botón de reset en el template.</p>
+<p>POST tiene dos flujos:</p>
+<ul>
+  <li><strong>Guardar orden:</strong> recibe <code>grupo=X</code> + lista <code>orden_X[]</code> con 4 IDs de país. Valida que los 4 IDs pertenezcan al grupo y no se repitan. Hace <code>DELETE</code> + <code>bulk CREATE</code> de las 4 filas.</li>
+  <li><strong>Reset:</strong> recibe <code>reset_grupo=1</code> + <code>grupo=X</code>. Hace <code>DELETE</code> de todas las filas del grupo para ese usuario; el orden vuelve a ser el automático.</li>
+</ul>
+
 <h3>llenar_prueba — datos de test</h3>
 <p>Solo POST. Selecciona aleatoriamente de una lista de 15 marcadores predefinidos y hace upsert de las 72 predicciones de grupos en batch. No toca fases eliminatorias.</p>
 <pre><code>SCORES = [(1,0),(0,1),(1,1),(2,1),(1,2),(2,0),(0,2),(2,2),
@@ -1064,6 +1134,11 @@ tabla = sorted(equipos.values(), key=<span class="kw">lambda</span> x: (-x[<span
 
 <h3>mundial.html — estado real</h3>
 <p>Dos tabs: "Fase de Grupos" y "Eliminatorias". En grupos: tabla de posiciones (PJ/PG/PE/PP/GF/GC/DG/Pts) por grupo con filas verdes (1ro-2do) y amarillas (3ro). Resultados con banderas y marcador. Partidos pendientes listados en texto. En eliminatorias: bracket por fase con equipos, marcadores y ★ para el ganador.</p>
+
+<h3>clasificacion.html — clasificación de grupos editable</h3>
+<p>Carga SortableJS desde CDN (<code>cdn.jsdelivr.net/npm/sortablejs@1.15.2</code>). Muestra 12 tabs (A–L) con un <code>&lt;tbody&gt;</code> sortable por grupo. Cada fila muestra: posición coloreada (verde para 1ro-2do, amarillo para 3ro), drag handle ⠿, bandera, nombre del país, PJ, Pts, DG, GF.</p>
+<p>Los inputs hidden están en un <code>&lt;div id="hidden-order-X"&gt;</code> fuera del <code>&lt;table&gt;</code> — evita HTML inválido de tener <code>&lt;input&gt;</code> dentro de <code>&lt;tr&gt;</code>. Al arrastrar, <code>updatePositions()</code> limpia ese div con <code>innerHTML=''</code> y recrea los inputs en el nuevo orden. Al hacer submit sin arrastrar, los inputs ya están correctos desde el servidor.</p>
+<p>Cuando <code>bloqueado=True</code>: SortableJS se inicializa con <code>disabled: true</code>, el cursor es <code>default</code>, no aparecen botones de guardar ni reset.</p>
 
 <h3>torneo_config_changelist.html — admin custom</h3>
 <p>Template que reemplaza el changelist estándar de Django admin para TorneoConfig. Muestra un card rojo "BLOQUEADO" o verde "ABIERTO" según el estado, con un botón grande de bloqueo/desbloqueo y un diálogo de confirmación JS.</p>
@@ -1202,7 +1277,7 @@ tabla = sorted(equipos.values(), key=<span class="kw">lambda</span> x: (-x[<span
 </div>
 
 <h3>_clasificados_grupo(perfil, letra) → list[Pais]</h3>
-<p>Para cada grupo, simula la tabla de posiciones basada en las predicciones del usuario. Acumula pts/gd/gf/wins para cada equipo y retorna la lista ordenada [1ro, 2do, 3ro, 4to].</p>
+<p>Primero consulta <code>OrdenGrupo</code>: si existen 4 filas para ese usuario+grupo, retorna esa lista directamente sin calcular nada. Si no hay orden manual, simula la tabla de posiciones desde las predicciones del usuario acumulando pts/gd/gf/wins y retorna la lista ordenada [1ro, 2do, 3ro, 4to]. El resto de bracket.py no sabe si el orden viene de predicciones o de un ajuste manual.</p>
 
 <h3>_tercero_stats(perfil, equipo, letra) → dict</h3>
 <p>Extrae pts/gd/gf/wins del equipo en tercer lugar para comparación entre grupos (los criterios de selección de mejores terceros son cross-group).</p>
@@ -1501,6 +1576,68 @@ terceros_map = {
 </section>
 
 <!-- ════════════════════════════════════════════════════════════ -->
+<section id="clasificacion">
+<h2>Clasificación manual de grupos</h2>
+<p>Feature que permite al usuario sobreescribir el orden de clasificación que el sistema calcula automáticamente de sus predicciones. El orden que el usuario fije es el que determina quién juega contra quién en las eliminatorias.</p>
+
+<h3>Flujo completo</h3>
+<div class="flow">
+  <div class="fs">Grupos<br><small>predicciones</small></div>
+  <div class="fs">Clasificación<br><small>ajustar orden</small></div>
+  <div class="fs">Eliminatorias<br><small>usa orden guardado</small></div>
+</div>
+
+<h3>Cómo interactúan los modelos</h3>
+<div class="diagram">
+<pre>
+Usuario llena predicciones de grupos (core_prediccion)
+           │
+           ▼
+_tabla_auto_grupo()  ←─ calcula pts/gd/gf por equipo
+           │
+           ▼
+clasificacion.html muestra tabla
+ El usuario arrastra para reordenar
+           │
+           ▼
+POST /clasificacion/ guarda orden en core_ordengrupo
+ (usuario_id, grupo='A', posicion=1, pais_id=X)
+ (usuario_id, grupo='A', posicion=2, pais_id=Y)
+ ...
+           │
+           ▼
+GET /eliminatorias/ llama get_predicted_bracket(perfil)
+ → _clasificados_grupo() consulta core_ordengrupo primero
+ → si hay 4 filas: usa ese orden
+ → si no: calcula automáticamente
+           │
+           ▼
+Bracket R32/R16/QF/SF/Final construido con el orden del usuario
+</pre>
+</div>
+
+<h3>Reglas de negocio</h3>
+<ul>
+  <li>El orden manual solo afecta al usuario que lo guardó — es por-usuario.</li>
+  <li>Si el usuario guarda un grupo, los otros 11 siguen siendo automáticos hasta que los toque.</li>
+  <li>El usuario puede "restablecer" un grupo al orden automático borrando sus registros (<code>reset_grupo=1</code>).</li>
+  <li>Cuando el torneo está bloqueado, no se pueden guardar ni restablecer órdenes.</li>
+  <li>Si las predicciones de grupos cambian después de guardar un orden manual, el orden manual no se actualiza automáticamente — el usuario tendría que ajustarlo de nuevo.</li>
+</ul>
+
+<h3>Estructura de la tabla <code>core_ordengrupo</code></h3>
+<p>Para un usuario que guardó el Grupo A como [Colombia, México, USA, Ecuador]:</p>
+<table class="sm">
+  <tr><th>usuario_id</th><th>grupo</th><th>posicion</th><th>pais_id</th></tr>
+  <tr><td>3</td><td>A</td><td>1</td><td>id de Colombia</td></tr>
+  <tr><td>3</td><td>A</td><td>2</td><td>id de México</td></tr>
+  <tr><td>3</td><td>A</td><td>3</td><td>id de USA</td></tr>
+  <tr><td>3</td><td>A</td><td>4</td><td>id de Ecuador</td></tr>
+</table>
+<p>Si el usuario guarda el Grupo B, se agregan 4 filas más con grupo='B'. Total máximo: 12 grupos × 4 posiciones = <strong>48 filas por usuario</strong>.</p>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
 <section id="admin">
 <h2>Panel de administración — workflows</h2>
 
@@ -1662,6 +1799,9 @@ USE_TZ = <span class="kw">True</span></code></pre>
   <tr><td>clasificado_real para empates en eliminatorias (admin)</td><td><span class="badge bg">Completo</span></td></tr>
   <tr><td>Banderas reales (flagcdn.com CDN, no emojis)</td><td><span class="badge bg">Completo</span></td></tr>
   <tr><td>Template tags: get_item, saved_in_group, flag_url, puntos_*</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Clasificación manual de grupos con drag &amp; drop (SortableJS)</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Modelo OrdenGrupo — orden por usuario, por grupo, restaurable</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>bracket.py usa orden manual si existe, automático si no</td><td><span class="badge bg">Completo</span></td></tr>
 </table>
 
 <hr>

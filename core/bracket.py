@@ -9,7 +9,17 @@ GRUPOS_LETRAS = list('ABCDEFGHIJKL')
 
 
 def _clasificados_grupo(perfil, letra):
-    """Returns list of Pais sorted by predicted standing [1st, 2nd, 3rd, 4th]."""
+    """Returns list of Pais sorted by predicted standing [1st, 2nd, 3rd, 4th].
+    Uses manual order if the user has set one; otherwise auto-calculates from predictions."""
+    from .models import OrdenGrupo
+    manual = list(
+        OrdenGrupo.objects.filter(usuario=perfil, grupo=letra)
+        .order_by('posicion')
+        .select_related('pais')
+    )
+    if len(manual) == 4:
+        return [m.pais for m in manual]
+
     partidos = list(
         Partido.objects.filter(fase='GR', grupo=letra)
         .select_related('equipo_local', 'equipo_visitante')

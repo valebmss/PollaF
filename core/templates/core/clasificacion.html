@@ -1,0 +1,300 @@
+{% extends 'core/base.html' %}
+{% load core_extras %}
+{% block title %}Clasificación Grupos — PollaF 2026{% endblock %}
+
+{% block extra_css %}
+<style>
+.group-tabs {
+  display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 16px;
+}
+.gtab {
+  width: 44px; height: 36px; border: 2px solid var(--borde);
+  background: #fff; border-radius: 8px; font-weight: 800; font-size: .85rem;
+  color: #888; cursor: pointer; transition: all .12s;
+  display: flex; align-items: center; justify-content: center; position: relative;
+}
+.gtab:hover { border-color: var(--verde); color: var(--verde); }
+.gtab.active { background: var(--verde); color: #fff; border-color: var(--verde); }
+.gtab .dot {
+  position: absolute; top: 3px; right: 3px;
+  width: 7px; height: 7px; border-radius: 50%; background: #28a745;
+}
+
+.group-panel { display: none; }
+.group-panel.active { display: block; }
+
+.grupo-card {
+  background: #fff; border-radius: 10px;
+  border: 1px solid var(--borde); overflow: hidden;
+  max-width: 580px; margin: 0 auto;
+}
+.grupo-head {
+  background: var(--verde); color: #fff;
+  padding: 9px 16px; display: flex; justify-content: space-between; align-items: center;
+}
+.grupo-head .titulo { font-weight: 800; font-size: .9rem; letter-spacing: .05em; }
+.grupo-head .badge {
+  font-size: .72rem; background: rgba(255,255,255,.2);
+  padding: 2px 9px; border-radius: 20px;
+}
+.grupo-head .badge.manual { background: rgba(255,210,40,.3); }
+
+.orden-aviso {
+  padding: 6px 14px; font-size: .78rem;
+  display: flex; align-items: center; gap: 6px; color: #999;
+  border-bottom: 1px solid #f0f0f0; background: #fafafa;
+}
+.orden-aviso.manual { color: #856404; background: #fffbe6; }
+.aviso-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  background: #ccc;
+}
+.orden-aviso.manual .aviso-dot { background: #f59e0b; }
+
+.clasi-table { width: 100%; border-collapse: collapse; }
+.clasi-table th {
+  font-size: .72rem; color: #aaa; font-weight: 600; text-transform: uppercase;
+  padding: 6px 10px; border-bottom: 1px solid var(--borde); background: #fafafa;
+  text-align: center;
+}
+.clasi-table th:nth-child(2) { text-align: left; }
+
+.clasi-row td {
+  padding: 9px 10px; border-bottom: 1px solid #f2f2f2;
+  vertical-align: middle; text-align: center; font-size: .86rem;
+  transition: background .1s;
+}
+.clasi-row:last-child td { border-bottom: none; }
+.clasi-row:hover td { background: #f4f9f6; }
+.clasi-row.sortable-ghost td { background: #e8f5ee; opacity: .6; }
+.clasi-row.sortable-chosen td { background: #dff0e8; }
+
+{% if not bloqueado %}
+.clasi-row { cursor: grab; }
+.clasi-row:active { cursor: grabbing; }
+{% endif %}
+
+.td-pos { width: 30px; font-weight: 800; color: #bbb; font-size: .8rem; }
+.td-pos.top2 { color: var(--verde); }
+.td-pos.pos3 { color: #f59e0b; }
+
+.td-pais {
+  display: flex; align-items: center; gap: 8px;
+  text-align: left; white-space: nowrap;
+}
+.drag-handle {
+  color: #ccc; font-size: 1rem; padding: 0 3px; flex-shrink: 0;
+  user-select: none;
+  {% if not bloqueado %}cursor: grab;{% else %}cursor: default; opacity: .35;{% endif %}
+}
+.drag-handle:hover { color: #888; }
+.td-pais img { width: 24px; height: 17px; border-radius: 2px; object-fit: cover; flex-shrink: 0; }
+.td-pais .pname { font-weight: 700; color: #222; }
+
+.td-pts { font-weight: 800; color: var(--verde); font-size: .95rem; }
+.td-num { color: #555; }
+.td-gd { color: #555; }
+.td-gd.pos { color: #1a7f4b; }
+.td-gd.neg { color: #dc3545; }
+
+.info-banner {
+  background: #e8f4fd; border: 1px solid #bee5eb; border-radius: 8px;
+  padding: 12px 18px; margin-bottom: 18px; font-size: .86rem; color: #0c5460;
+}
+.info-banner strong { color: var(--verde); }
+
+.bloqueado-banner {
+  background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px;
+  padding: 10px 16px; margin-bottom: 14px; color: #721c24;
+  font-size: .85rem; font-weight: 600;
+}
+
+.btn-guardar {
+  display: block; width: calc(100% - 28px); margin: 10px 14px;
+  padding: 9px; border: none; border-radius: 7px;
+  background: var(--verde); color: #fff;
+  font-size: .87rem; font-weight: 700; cursor: pointer;
+  transition: background .13s;
+}
+.btn-guardar:hover { background: var(--verde2); }
+
+.btn-reset {
+  display: block; width: calc(100% - 28px); margin: 0 14px 10px;
+  padding: 7px; border: 1.5px solid var(--borde); border-radius: 7px;
+  background: #fff; color: #666;
+  font-size: .82rem; font-weight: 600; cursor: pointer;
+  transition: all .13s; text-align: center;
+}
+.btn-reset:hover { border-color: #dc3545; color: #dc3545; background: #fff5f5; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom:6px;font-size:1.15rem;">Clasificación de Grupos</h2>
+<p style="color:#888;font-size:.84rem;margin-bottom:18px;">
+  Arrastra los equipos para ajustar el orden. Este orden define los cruces en eliminatorias.
+</p>
+
+{% if bloqueado %}
+<div class="bloqueado-banner">Torneo bloqueado — no se puede modificar la clasificación.</div>
+{% else %}
+<div class="info-banner">
+  El orden <strong>calculado automáticamente</strong> viene de tus predicciones de marcadores.
+  Arrastra para ajustarlo y guarda — ese orden es el que usa el bracket eliminatorio.
+</div>
+{% endif %}
+
+<div class="group-tabs">
+  {% for g in grupos_data %}
+  <button class="gtab {% if forloop.first %}active{% endif %}"
+          id="tab-{{ g.letra }}"
+          onclick="showGroup('{{ g.letra }}')">
+    {{ g.letra }}
+    {% if g.tiene_manual %}<span class="dot"></span>{% endif %}
+  </button>
+  {% endfor %}
+</div>
+
+{% for g in grupos_data %}
+<div class="group-panel {% if forloop.first %}active{% endif %}" id="panel-{{ g.letra }}">
+  <div class="grupo-card">
+
+    <div class="grupo-head">
+      <span class="titulo">GRUPO {{ g.letra }}</span>
+      {% if g.tiene_manual %}
+        <span class="badge manual" id="badge-{{ g.letra }}">Orden manual</span>
+      {% else %}
+        <span class="badge" id="badge-{{ g.letra }}">Automático</span>
+      {% endif %}
+    </div>
+
+    <div class="orden-aviso {% if g.tiene_manual %}manual{% endif %}" id="aviso-{{ g.letra }}">
+      <span class="aviso-dot"></span>
+      <span id="aviso-txt-{{ g.letra }}">
+        {% if g.tiene_manual %}Orden manual guardado — puedes seguir ajustando{% else %}Calculado de tus predicciones de marcadores{% endif %}
+      </span>
+    </div>
+
+    <form method="post" id="form-{{ g.letra }}">
+      {% csrf_token %}
+      <input type="hidden" name="grupo" value="{{ g.letra }}">
+
+      <table class="clasi-table">
+        <thead>
+          <tr>
+            <th style="width:30px;">#</th>
+            <th>País</th>
+            <th>PJ</th>
+            <th>Pts</th>
+            <th>DG</th>
+            <th>GF</th>
+          </tr>
+        </thead>
+        <tbody id="sortable-{{ g.letra }}" data-grupo="{{ g.letra }}">
+          {% for row in g.tabla %}
+          <tr class="clasi-row" data-pais-id="{{ row.pais.id }}">
+            <td class="td-pos {% if forloop.counter <= 2 %}top2{% elif forloop.counter == 3 %}pos3{% endif %}">
+              {{ forloop.counter }}
+            </td>
+            <td>
+              <div class="td-pais">
+                <span class="drag-handle">⠿</span>
+                <img src="{{ row.pais|flag_url }}" alt="{{ row.pais.codigo }}"
+                     onerror="this.style.display='none'">
+                <span class="pname">{{ row.pais.nombre }}</span>
+              </div>
+            </td>
+            <td class="td-num">{{ row.pj }}</td>
+            <td class="td-pts">{{ row.pts }}</td>
+            <td class="td-gd {% if row.gd > 0 %}pos{% elif row.gd < 0 %}neg{% endif %}">
+              {% if row.gd > 0 %}+{% endif %}{{ row.gd }}
+            </td>
+            <td class="td-num">{{ row.gf }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div id="hidden-order-{{ g.letra }}">
+        {% for row in g.tabla %}
+        <input type="hidden" name="orden_{{ g.letra }}" value="{{ row.pais.id }}">
+        {% endfor %}
+      </div>
+
+      {% if not bloqueado %}
+      <button type="submit" class="btn-guardar">Guardar Grupo {{ g.letra }}</button>
+      {% if g.tiene_manual %}
+      <button type="button" class="btn-reset" onclick="resetGrupo('{{ g.letra }}')">
+        Restablecer orden automático
+      </button>
+      {% endif %}
+      {% endif %}
+    </form>
+
+  </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+function showGroup(letra) {
+  document.querySelectorAll('.group-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.gtab').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + letra).classList.add('active');
+  document.getElementById('tab-' + letra).classList.add('active');
+}
+
+function updatePositions(tbody) {
+  const grupo = tbody.dataset.grupo;
+  const rows = tbody.querySelectorAll('tr.clasi-row');
+  const container = document.getElementById('hidden-order-' + grupo);
+
+  container.innerHTML = '';
+  rows.forEach((row, idx) => {
+    const tdPos = row.querySelector('.td-pos');
+    tdPos.textContent = idx + 1;
+    tdPos.className = 'td-pos' + (idx < 2 ? ' top2' : idx === 2 ? ' pos3' : '');
+
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'orden_' + grupo;
+    input.value = row.dataset.paisId;
+    container.appendChild(input);
+  });
+
+  const aviso = document.getElementById('aviso-' + grupo);
+  aviso.classList.add('manual');
+  document.getElementById('aviso-txt-' + grupo).textContent =
+    'Orden modificado — guarda para aplicarlo al bracket';
+}
+
+function resetGrupo(grupo) {
+  if (!confirm('¿Restaurar el orden automático para el Grupo ' + grupo + '?')) return;
+  const form = document.getElementById('form-' + grupo);
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'reset_grupo';
+  input.value = '1';
+  document.getElementById('hidden-order-' + grupo).innerHTML = '';
+  form.appendChild(input);
+  form.submit();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  {% for g in grupos_data %}
+  Sortable.create(document.getElementById('sortable-{{ g.letra }}'), {
+    animation: 150,
+    handle: '.drag-handle',
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    disabled: {% if bloqueado %}true{% else %}false{% endif %},
+    onEnd: function () {
+      updatePositions(document.getElementById('sortable-{{ g.letra }}'));
+    }
+  });
+  {% endfor %}
+});
+</script>
+{% endblock %}

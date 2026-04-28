@@ -5,6 +5,7 @@ app_name = 'core'
 
 urlpatterns = [
     path('', views.home, name='home'),
+    path('clasificacion/', views.clasificacion_grupos, name='clasificacion_grupos'),
     path('eliminatorias/', views.eliminatorias, name='eliminatorias'),
     path('ranking/', views.ranking, name='ranking'),
     path('mundial/', views.mundial, name='mundial'),
