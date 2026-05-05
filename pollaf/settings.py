@@ -76,7 +76,7 @@ WSGI_APPLICATION = 'pollaf.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'pollaf_db',
+        'NAME': 'pollaf_santiago',
         'USER': 'postgres',
         'PASSWORD': 'admin',
         'HOST': '127.0.0.1',

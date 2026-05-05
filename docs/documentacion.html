@@ -139,9 +139,13 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
     <li><a href="#templatetags">Template tags</a></li>
 
     <li class="sec">Algoritmos</li>
+    <li><a href="#clasificacion-manual-view">Clasificación manual de grupos</a></li>
     <li><a href="#scoring">Cálculo de puntos</a></li>
     <li><a href="#bracket">Bracket en cascada</a></li>
     <li><a href="#terceros-algo">Asignación de terceros</a></li>
+
+    <li class="sec">Diseño</li>
+    <li><a href="#solid">Principios SOLID</a></li>
 
     <li class="sec">Administración</li>
     <li><a href="#admin">Panel admin — workflows</a></li>
@@ -273,7 +277,7 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
 <h2>Credenciales y acceso</h2>
 <table>
   <tr><th>Recurso</th><th>Valor</th></tr>
-  <tr><td>Base de datos</td><td><code>pollaf_db</code></td></tr>
+  <tr><td>Base de datos</td><td><code>pollaf_santiago</code></td></tr>
   <tr><td>Host PostgreSQL</td><td><code>127.0.0.1:5432</code></td></tr>
   <tr><td>Usuario PostgreSQL</td><td><code>postgres</code></td></tr>
   <tr><td>Contraseña PostgreSQL</td><td><code>admin</code></td></tr>
@@ -380,11 +384,11 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
   <tr><th>Archivo</th><th>Qué contiene / para qué sirve</th></tr>
   <tr>
     <td><code>models.py</code></td>
-    <td><strong>Las tablas de la base de datos.</strong> Cada clase Python aquí = una tabla en PostgreSQL. Define los 5 modelos: <code>Pais</code> (48 países), <code>Partido</code> (104 partidos), <code>TorneoConfig</code> (bloqueo), <code>PerfilUsuario</code> (participantes), <code>Prediccion</code> (predicciones).</td>
+    <td><strong>Las tablas de la base de datos.</strong> Cada clase Python aquí = una tabla en PostgreSQL. Define los 7 modelos: <code>Pais</code> (48 países), <code>Partido</code> (104 partidos), <code>TorneoConfig</code> (bloqueo), <code>PerfilUsuario</code> (participantes), <code>Prediccion</code> (predicciones), <code>ClasificacionManualGrupo</code> (clasificación de grupos personalizada por usuario), <code>TerceroManual</code> (orden manual de terceros del usuario).</td>
   </tr>
   <tr>
     <td><code>views.py</code></td>
-    <td><strong>La lógica de cada página.</strong> Cada función aquí es una "vista": recibe la petición HTTP del usuario, consulta la BD, procesa datos, y entrega un contexto al template HTML. Son 8 vistas: home, eliminatorias, mundial, ranking, llenar_prueba, registro, login, logout.</td>
+    <td><strong>La lógica de cada página.</strong> Cada función aquí es una "vista": recibe la petición HTTP del usuario, consulta la BD, procesa datos, y entrega un contexto al template HTML. Son 9 vistas: home, eliminatorias, clasificacion_manual, mundial, ranking, llenar_prueba, registro, login, logout.</td>
   </tr>
   <tr>
     <td><code>urls.py</code></td>
@@ -438,6 +442,7 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
   <tr><td><code>core/eliminatorias.html</code></td><td>Predicciones del bracket eliminatorio. Muestra las fases R32 → Final con los equipos calculados por bracket.py.</td></tr>
   <tr><td><code>core/mundial.html</code></td><td>Estado real del torneo (no predicciones). Muestra posiciones actuales de cada grupo y resultados reales con banderas.</td></tr>
   <tr><td><code>core/ranking.html</code></td><td>Tabla global de participantes ordenada por puntos. Resalta al usuario actual.</td></tr>
+  <tr><td><code>core/clasificacion_manual.html</code></td><td>Panel para que el usuario personalice el orden de clasificación de cada grupo (quién queda 1ro, 2do, etc.) y el ranking de los terceros. Permite sobreescribir el cálculo automático del bracket.</td></tr>
   <tr><td><code>core/login.html</code></td><td>Formulario de ingreso.</td></tr>
   <tr><td><code>core/registro.html</code></td><td>Formulario de creación de cuenta.</td></tr>
   <tr><td><code>admin/torneo_config_changelist.html</code></td><td>Template custom del panel admin para el bloqueo del torneo. Reemplaza la lista estándar de Django con un panel visual de estado + botón de bloqueo.</td></tr>
@@ -511,6 +516,7 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
 │       │   ├── base.html            ← layout base: navbar + footer + CSS global
 │       │   ├── home.html            ← predicciones grupos (tabs A-L)
 │       │   ├── eliminatorias.html   ← predicciones bracket eliminatorio
+│       │   ├── clasificacion_manual.html  ← override manual del bracket por grupo y terceros
 │       │   ├── mundial.html         ← estado real del torneo con flags y tabla
 │       │   ├── ranking.html         ← ranking global de participantes
 │       │   ├── login.html           ← formulario de ingreso
@@ -659,6 +665,31 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
   <tr><td><code>puntos</code></td><td>SMALLINT</td><td>NULL hasta jugarse</td><td>0, 2 o 5. NULL = partido no jugado aún.</td></tr>
   <tr><td colspan="4"><em>UNIQUE constraint en (usuario_id, partido_id)</em></td></tr>
 </table>
+
+<h3>6. ClasificacionManualGrupo — <code>core_clasificacionmanualgrupo</code></h3>
+<p>Permite a un usuario sobreescribir el cálculo automático de posiciones de un grupo. Si existe este registro para un grupo, <code>bracket.py</code> usa esos datos en lugar de recalcular desde las predicciones. Si no existe, el bracket se calcula automáticamente.</p>
+<table class="sm">
+  <tr><th>Campo</th><th>SQL type</th><th>Constraints</th><th>Descripción</th></tr>
+  <tr><td><code>id</code></td><td>SERIAL</td><td>PK</td><td>—</td></tr>
+  <tr><td><code>usuario_id</code></td><td>INTEGER</td><td>FK→core_perfilusuario</td><td>—</td></tr>
+  <tr><td><code>grupo</code></td><td>VARCHAR(1)</td><td>NOT NULL</td><td>Letra del grupo (A–L)</td></tr>
+  <tr><td><code>primero_id</code></td><td>INTEGER</td><td>FK→core_pais, NULL OK</td><td>Equipo elegido como 1ro del grupo</td></tr>
+  <tr><td><code>segundo_id</code></td><td>INTEGER</td><td>FK→core_pais, NULL OK</td><td>Equipo elegido como 2do</td></tr>
+  <tr><td><code>tercero_id</code></td><td>INTEGER</td><td>FK→core_pais, NULL OK</td><td>Equipo elegido como 3ro</td></tr>
+  <tr><td><code>cuarto_id</code></td><td>INTEGER</td><td>FK→core_pais, NULL OK</td><td>Equipo elegido como 4to (eliminado)</td></tr>
+  <tr><td colspan="4"><em>UNIQUE constraint en (usuario_id, grupo) — una clasificación por grupo por usuario</em></td></tr>
+</table>
+
+<h3>7. TerceroManual — <code>core_terceromanual</code></h3>
+<p>Permite al usuario definir manualmente qué 8 terceros de los 12 grupos clasifica y en qué orden. Si el usuario tiene 8 registros aquí, <code>bracket.py</code> usa ese orden en lugar del ranking automático por pts/gd/gf/wins.</p>
+<table class="sm">
+  <tr><th>Campo</th><th>SQL type</th><th>Constraints</th><th>Descripción</th></tr>
+  <tr><td><code>id</code></td><td>SERIAL</td><td>PK</td><td>—</td></tr>
+  <tr><td><code>usuario_id</code></td><td>INTEGER</td><td>FK→core_perfilusuario</td><td>—</td></tr>
+  <tr><td><code>posicion</code></td><td>SMALLINT</td><td>NOT NULL</td><td>Rango (1–8). El 1ro es el mejor tercero según el usuario.</td></tr>
+  <tr><td><code>pais_id</code></td><td>INTEGER</td><td>FK→core_pais, NULL OK</td><td>El país en tercer lugar elegido para esa posición</td></tr>
+  <tr><td colspan="4"><em>UNIQUE constraint en (usuario_id, posicion)</em></td></tr>
+</table>
 </section>
 
 <!-- ════════════════════════════════════════════════════════════ -->
@@ -709,6 +740,29 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
   │ bloqueado BOOLEAN            │
   │ bloqueado_en TIMESTAMPTZ NULL│
   └──────────────────────────────┘
+
+  ┌───────────────────────────────────────────────────┐
+  │       core_clasificacionmanualgrupo               │
+  │───────────────────────────────────────────────────│
+  │ id PK                                             │
+  │ usuario_id FK→core_perfilusuario                  │
+  │ grupo VARCHAR(1)   ← A–L                          │
+  │ primero_id FK→core_pais NULL OK                   │
+  │ segundo_id FK→core_pais NULL OK                   │
+  │ tercero_id FK→core_pais NULL OK                   │
+  │ cuarto_id  FK→core_pais NULL OK                   │
+  │ UNIQUE(usuario_id, grupo)                         │
+  └───────────────────────────────────────────────────┘
+
+  ┌───────────────────────────────────────────────────┐
+  │       core_terceromanual                          │
+  │───────────────────────────────────────────────────│
+  │ id PK                                             │
+  │ usuario_id FK→core_perfilusuario                  │
+  │ posicion SMALLINT   ← 1–8                         │
+  │ pais_id FK→core_pais NULL OK                      │
+  │ UNIQUE(usuario_id, posicion)                      │
+  └───────────────────────────────────────────────────┘
 </pre>
 </div>
 </section>
@@ -722,6 +776,7 @@ table.sm td,table.sm th{padding:6px 10px;font-size:.82rem;}
   <tr><td><code>0002_pais_partido_perfilusuario_prediccion.py</code></td><td>Crea core_pais, core_partido, core_perfilusuario, core_prediccion</td></tr>
   <tr><td><code>0003_prediccion_clasificado_pred.py</code></td><td>Agrega FK <code>clasificado_pred_id</code> a core_prediccion</td></tr>
   <tr><td><code>0004_torneoconfig_partido_clasificado_real.py</code></td><td>Crea core_torneoconfig; agrega FK <code>clasificado_real_id</code> a core_partido</td></tr>
+  <tr><td><code>0005_alter_pais_id_alter_partido_id_and_more.py</code></td><td>Ajusta tipos de PK en core_pais y core_partido; crea core_clasificacionmanualgrupo y core_terceromanual</td></tr>
 </table>
 <pre><code><span class="cm"># Aplicar todas las migraciones</span>
 python manage.py migrate
@@ -940,6 +995,12 @@ perfil = _get_perfil(request)
     <td>Ranking global de participantes ordenado por puntos.</td>
   </tr>
   <tr>
+    <td><code>/clasificacion-manual/</code></td><td><code>core:clasificacion_manual</code></td>
+    <td><span class="method-get">GET</span> <span class="method-post">POST</span></td>
+    <td>Login requerido</td>
+    <td>Permite al usuario sobreescribir el orden de clasificación de cada grupo (1ro–4to) y el ranking de los 12 terceros. Acciones POST: <code>guardar_grupos</code>, <code>guardar_terceros</code>, <code>restaurar_auto</code>. Si no se guarda nada, el bracket usa el cálculo automático.</td>
+  </tr>
+  <tr>
     <td><code>/llenar-prueba/</code></td><td><code>core:llenar_prueba</code></td>
     <td><span class="method-post">POST</span></td>
     <td>Login requerido</td>
@@ -1019,24 +1080,31 @@ perfil = _get_perfil(request)
 <section id="views">
 <h2>Vistas — lógica detallada</h2>
 
-<h3>home — predicciones de grupos</h3>
-<p>El POST procesa un grupo a la vez (el formulario envía <code>accion=guardar_grupo</code> y <code>grupo=A</code>). Por cada partido del grupo, busca <code>local_&lt;id&gt;</code> y <code>visitante_&lt;id&gt;</code> en el POST. Usa <code>update_or_create</code> para hacer upsert sin duplicar registros.</p>
+<h3>Helpers de vistas — funciones de soporte (S)</h3>
+<p>Antes de las vistas hay cuatro funciones de soporte que extraen lógica repetida o compleja.</p>
 
-<p>El GET construye <code>predicciones_map</code> como un dict plano <code>{partido_id: prediccion}</code> en una sola query, en lugar de hacer N queries en el template. El template usa el filtro personalizado <code>get_item</code> para hacer <code>predicciones_map|get_item:partido.id</code>.</p>
+<table class="sm">
+  <tr><th>Función</th><th>Responsabilidad única</th></tr>
+  <tr><td><code>_requiere_participante</code></td><td>Decorator que centraliza el guard <code>is_staff → /admin/</code> + <code>perfil is None → /login/</code>. Elimina ese bloque repetido en 6 vistas. Las vistas que lo usan reciben <code>perfil</code> como parámetro directamente.</td></tr>
+  <tr><td><code>_guardar_predicciones_grupo(perfil, partidos, post_data)</code></td><td>Solo persiste predicciones de grupos desde datos POST. Retorna el conteo guardado. Sin acceso a request ni lógica de redirección.</td></tr>
+  <tr><td><code>_guardar_predicciones_eliminatorias(perfil, fase, post_data)</code></td><td>Solo persiste predicciones eliminatorias para una fase. Sin acceso a request.</td></tr>
+  <tr><td><code>_construir_standings_grupo(partidos)</code></td><td>Solo calcula la tabla de posiciones real de un grupo desde los partidos jugados. Sin acceso a BD — recibe la lista de partidos ya cargados.</td></tr>
+</table>
+
+<h3>home — predicciones de grupos</h3>
+<p>El POST delega en <code>_guardar_predicciones_grupo()</code> y solo maneja el bloqueo y el mensaje de éxito. El GET construye <code>predicciones_map</code> como un dict plano <code>{partido_id: prediccion}</code> en una sola query. El template usa el filtro <code>get_item</code> para acceso O(1).</p>
+
+<h3 id="clasificacion-manual-view">clasificacion_manual — clasificación manual de grupos</h3>
+<p>La vista más compleja de interacción con el usuario. Permite tres acciones vía POST:</p>
+<ul>
+  <li><code>guardar_grupos</code>: recibe los dropdowns de clasificación de cada grupo y crea o actualiza registros <code>ClasificacionManualGrupo</code>. Valida que no haya equipos repetidos dentro del mismo grupo.</li>
+  <li><code>guardar_terceros</code>: recibe el ranking de los 12 terceros y crea o actualiza registros <code>TerceroManual</code> (posiciones 1–12, aunque solo las 8 primeras se usan en el bracket).</li>
+  <li><code>restaurar_auto</code>: elimina todos los registros <code>ClasificacionManualGrupo</code> y <code>TerceroManual</code> del usuario. El bracket vuelve a calcularse automáticamente desde sus predicciones.</li>
+</ul>
+<p>El GET carga el estado actual: qué grupos tienen clasificación manual, qué terceros tienen orden manual, y cuáles siguen en automático. El bracket de <code>eliminatorias</code> respeta estas sobreescrituras transparentemente.</p>
 
 <h3>mundial — estado real del torneo</h3>
-<p>Construye la tabla de posiciones de cada grupo de forma puramente Python, sin sub-queries por equipo. El algoritmo:</p>
-<pre><code><span class="cm"># Para cada partido jugado en el grupo:</span>
-<span class="kw">if</span> gl &gt; gv:
-    equipos[lid][<span class="str">'pg'</span>] += <span class="num">1</span>; equipos[lid][<span class="str">'pts'</span>] += <span class="num">3</span>; equipos[vid][<span class="str">'pp'</span>] += <span class="num">1</span>
-<span class="kw">elif</span> gv &gt; gl:
-    equipos[vid][<span class="str">'pg'</span>] += <span class="num">1</span>; equipos[vid][<span class="str">'pts'</span>] += <span class="num">3</span>; equipos[lid][<span class="str">'pp'</span>] += <span class="num">1</span>
-<span class="kw">else</span>:
-    equipos[lid][<span class="str">'pe'</span>] += <span class="num">1</span>; equipos[lid][<span class="str">'pts'</span>] += <span class="num">1</span>
-    equipos[vid][<span class="str">'pe'</span>] += <span class="num">1</span>; equipos[vid][<span class="str">'pts'</span>] += <span class="num">1</span>
-
-<span class="cm"># Ordenar por: pts desc, diferencia goles desc, goles favor desc</span>
-tabla = sorted(equipos.values(), key=<span class="kw">lambda</span> x: (-x[<span class="str">'pts'</span>], -(x[<span class="str">'gf'</span>]-x[<span class="str">'gc'</span>]), -x[<span class="str">'gf'</span>]))</code></pre>
+<p>Llama a <code>_construir_standings_grupo(partidos)</code> por cada grupo. Esa función acumula PJ/PG/PE/PP/GF/GC/PTS sin sub-queries y ordena por pts → diferencia de goles → goles a favor. La vista solo carga los partidos de BD y arma el contexto.</p>
 
 <h3>ranking — tabla de posiciones</h3>
 <p>Usa un solo <code>annotate(count=Count('id'))</code> sobre <code>Prediccion</code> para obtener el conteo de predicciones de todos los usuarios en una sola query. Luego hace un dict Python para lookup O(1) por usuario.</p>
@@ -1061,6 +1129,9 @@ tabla = sorted(equipos.values(), key=<span class="kw">lambda</span> x: (-x[<span
 <p>Tabs A–L (12 botones): cada tab muestra solo los 6 partidos del grupo, eliminando el scroll largo. Tab activa se recuerda vía JS. Indicador verde (6/6 guardados) o amarillo (parcial).</p>
 <p>Cada partido muestra: bandera+nombre local | inputs de goles | bandera+nombre visitante. Si el partido ya se jugó, los inputs quedan deshabilitados y se muestra un badge con los puntos obtenidos.</p>
 <p>El filtro <code>{% regroup partidos_grupos by grupo as grupos_list %}</code> agrupa los 72 partidos por letra de grupo en una sola pasada.</p>
+
+<h3>clasificacion_manual.html — clasificación manual de grupos</h3>
+<p>Permite al usuario sobreescribir el orden de clasificación de los grupos y el ranking de terceros. Muestra un formulario por grupo (A–L) con dropdowns para elegir 1ro, 2do, 3ro y 4to lugar. Debajo, una sección para ordenar los 12 terceros. El botón "Restaurar automático" borra todos los registros manuales y vuelve al cálculo desde predicciones.</p>
 
 <h3>mundial.html — estado real</h3>
 <p>Dos tabs: "Fase de Grupos" y "Eliminatorias". En grupos: tabla de posiciones (PJ/PG/PE/PP/GF/GC/DG/Pts) por grupo con filas verdes (1ro-2do) y amarillas (3ro). Resultados con banderas y marcador. Partidos pendientes listados en texto. En eliminatorias: bracket por fase con equipos, marcadores y ★ para el ganador.</p>
@@ -1127,70 +1198,59 @@ tabla = sorted(equipos.values(), key=<span class="kw">lambda</span> x: (-x[<span
 <!-- ════════════════════════════════════════════════════════════ -->
 <section id="scoring">
 <h2>Algoritmo de cálculo de puntos — <code>core/scoring.py</code></h2>
-<p>La función <code>calcular_puntos_partido(partido)</code> se llama desde <code>PartidoAdmin.save_model()</code> cada vez que el admin guarda un partido con <code>jugado=True</code>. Procesa <strong>todas</strong> las predicciones de ese partido en una sola pasada y actualiza los totales con un UPDATE SQL por usuario afectado.</p>
+<p><code>calcular_puntos_partido(partido)</code> se llama desde <code>PartidoAdmin.save_model()</code> cada vez que el admin guarda un partido con <code>jugado=True</code>. El módulo aplica los principios S y O: cada función tiene una responsabilidad única, y las reglas de puntuación son clases intercambiables.</p>
 
-<pre><code><span class="kw">def</span> <span class="fn">calcular_puntos_partido</span>(partido):
-    <span class="kw">if not</span> partido.jugado <span class="kw">or</span> partido.goles_local_real <span class="kw">is None</span>:
-        <span class="kw">return</span> <span class="num">0</span>
+<h3>Estructura del módulo (S + O)</h3>
+<table class="sm">
+  <tr><th>Función / Clase</th><th>Responsabilidad única</th></tr>
+  <tr><td><code>_resultado(gl, gv)</code></td><td>Devuelve <code>'L'</code>, <code>'E'</code> o <code>'V'</code>. Función pura sin efectos.</td></tr>
+  <tr><td><code>EstrategiaGrupo</code></td><td>Regla de puntuación para fase GR: 5 exacto / 2 resultado / 0.</td></tr>
+  <tr><td><code>EstrategiaEliminatoria</code></td><td>Regla de puntuación para fases eliminatorias: 5 exacto+ganador / 2 ganador / 0.</td></tr>
+  <tr><td><code>_get_estrategia(fase)</code></td><td>Factory — devuelve la estrategia correcta según la fase. Agregar nueva regla = nueva clase aquí.</td></tr>
+  <tr><td><code>_ganador_real(partido)</code></td><td>Determina el ganador real del partido. Sin acceso a BD.</td></tr>
+  <tr><td><code>_ganador_pred(pred, partido)</code></td><td>Determina el ganador predicho por el usuario. Sin acceso a BD.</td></tr>
+  <tr><td><code>_calcular_puntos_pred(pred, partido, estrategia, ganador_real)</code></td><td>Cálculo puro — devuelve 0, 2 o 5. No toca la BD.</td></tr>
+  <tr><td><code>_guardar_puntos_predicciones(preds_pts)</code></td><td>Solo escribe los puntos calculados en la BD. Devuelve los user IDs afectados.</td></tr>
+  <tr><td><code>_recalcular_totales(usuario_ids)</code></td><td>Solo recalcula <code>puntos_totales</code> de los usuarios afectados via SUM.</td></tr>
+  <tr><td><code>calcular_puntos_partido(partido)</code></td><td>Orquestador público — wires everything together. 8 líneas.</td></tr>
+</table>
 
-    gl_r = partido.goles_local_real
-    gv_r = partido.goles_visitante_real
-    es_grupo = partido.fase == <span class="str">'GR'</span>
+<pre><code><span class="cm"># O: agregar nueva regla de puntuación sin tocar código existente</span>
+<span class="kw">class</span> <span class="cls">EstrategiaGrupo</span>:
+    <span class="kw">def</span> <span class="fn">calcular</span>(self, gl_p, gv_p, gl_r, gv_r, **kwargs):
+        <span class="kw">if</span> gl_p == gl_r <span class="kw">and</span> gv_p == gv_r: <span class="kw">return</span> <span class="num">5</span>
+        <span class="kw">return</span> <span class="num">2</span> <span class="kw">if</span> _resultado(gl_p, gv_p) == _resultado(gl_r, gv_r) <span class="kw">else</span> <span class="num">0</span>
 
-    <span class="cm"># Determinar ganador real (para eliminatorias)</span>
-    <span class="kw">if not</span> es_grupo <span class="kw">and</span> gl_r == gv_r:
-        ganador_real = partido.clasificado_real  <span class="cm"># lo ingresó el admin</span>
-    <span class="kw">elif</span> gl_r &gt; gv_r:
-        ganador_real = partido.equipo_local
-    <span class="kw">else</span>:
-        ganador_real = partido.equipo_visitante
+<span class="kw">class</span> <span class="cls">EstrategiaEliminatoria</span>:
+    <span class="kw">def</span> <span class="fn">calcular</span>(self, gl_p, gv_p, gl_r, gv_r, ganador_pred=<span class="kw">None</span>, ganador_real=<span class="kw">None</span>):
+        exact   = (gl_p == gl_r <span class="kw">and</span> gv_p == gv_r)
+        correct = (ganador_pred <span class="kw">is not None and</span> ganador_real <span class="kw">is not None</span>
+                   <span class="kw">and</span> ganador_pred.id == ganador_real.id)
+        <span class="kw">if</span> exact <span class="kw">and</span> correct: <span class="kw">return</span> <span class="num">5</span>
+        <span class="kw">return</span> <span class="num">2</span> <span class="kw">if</span> correct <span class="kw">else</span> <span class="num">0</span>
 
-    preds = Prediccion.objects.filter(partido=partido).select_related(<span class="str">'usuario'</span>, <span class="str">'clasificado_pred'</span>)
-    usuarios_afectados = set()
-
-    <span class="kw">for</span> pred <span class="kw">in</span> preds:
-        gl_p, gv_p = pred.goles_local, pred.goles_visitante
-
-        <span class="kw">if</span> es_grupo:
-            <span class="kw">if</span> gl_p == gl_r <span class="kw">and</span> gv_p == gv_r:
-                pts = <span class="num">5</span>                          <span class="cm"># marcador exacto</span>
-            <span class="kw">elif</span> sign(gl_p-gv_p) == sign(gl_r-gv_r):
-                pts = <span class="num">2</span>                          <span class="cm"># mismo resultado (L/E/V)</span>
-            <span class="kw">else</span>:
-                pts = <span class="num">0</span>
-        <span class="kw">else</span>:
-            <span class="cm"># Determinar ganador predicho</span>
-            <span class="kw">if</span> gl_p &gt; gv_p:   ganador_pred = partido.equipo_local
-            <span class="kw">elif</span> gv_p &gt; gl_p: ganador_pred = partido.equipo_visitante
-            <span class="kw">else</span>:             ganador_pred = pred.clasificado_pred
-
-            exact   = (gl_p == gl_r <span class="kw">and</span> gv_p == gv_r)
-            correct = (ganador_pred <span class="kw">and</span> ganador_real <span class="kw">and</span>
-                       ganador_pred.id == ganador_real.id)
-            pts = <span class="num">5</span> <span class="kw">if</span> (exact <span class="kw">and</span> correct) <span class="kw">else</span> <span class="num">2</span> <span class="kw">if</span> correct <span class="kw">else</span> <span class="num">0</span>
-
-        pred.puntos = pts
-        pred.save(update_fields=[<span class="str">'puntos'</span>])     <span class="cm"># UPDATE solo el campo puntos</span>
-        usuarios_afectados.add(pred.usuario_id)
-
-    <span class="cm"># Recalcular puntos_totales para cada usuario afectado</span>
-    <span class="kw">for</span> uid <span class="kw">in</span> usuarios_afectados:
-        total = (Prediccion.objects
-                 .filter(usuario_id=uid, puntos__isnull=<span class="kw">False</span>)
-                 .aggregate(t=Sum(<span class="str">'puntos'</span>))[<span class="str">'t'</span>] <span class="kw">or</span> <span class="num">0</span>)
-        PerfilUsuario.objects.filter(id=uid).update(puntos_totales=total)
-
+<span class="cm"># S: orquestador — wires the pieces together</span>
+<span class="kw">def</span> <span class="fn">calcular_puntos_partido</span>(partido):
+    <span class="kw">if not</span> partido.jugado <span class="kw">or</span> partido.goles_local_real <span class="kw">is None</span>: <span class="kw">return</span> <span class="num">0</span>
+    estrategia = _get_estrategia(partido.fase)
+    gan_real   = _ganador_real(partido)
+    preds      = list(Prediccion.objects.filter(partido=partido)
+                      .select_related(<span class="str">'usuario'</span>, <span class="str">'clasificado_pred'</span>))
+    preds_pts  = [(pred, _calcular_puntos_pred(pred, partido, estrategia, gan_real))
+                  <span class="kw">for</span> pred <span class="kw">in</span> preds]
+    usuario_ids = _guardar_puntos_predicciones(preds_pts)
+    _recalcular_totales(usuario_ids)
     <span class="kw">return</span> len(preds)</code></pre>
 
 <div class="alert as">
-  <strong>Diseño clave:</strong> <code>puntos_totales</code> se recalcula siempre por SUM desde la BD, no incrementalmente. Esto evita desincronización si el admin corrige un resultado ya calculado — simplemente vuelve a correr <code>calcular_puntos_partido</code> y el total se recalcula desde cero sumando todas las predicciones con puntos asignados.
+  <strong>Diseño clave:</strong> <code>puntos_totales</code> se recalcula siempre por SUM desde la BD, no incrementalmente. Si el admin corrige un resultado ya calculado, simplemente guarda de nuevo y todos los totales se recalculan desde cero.
 </div>
 </section>
 
 <!-- ════════════════════════════════════════════════════════════ -->
 <section id="bracket">
 <h2>Algoritmo de bracket en cascada — <code>core/bracket.py</code></h2>
-<p>La función principal <code>get_predicted_bracket(perfil)</code> construye el bracket completo de un usuario sin ninguna intervención manual, derivando todos los equipos eliminatorios de sus predicciones de grupos.</p>
+<p><code>get_predicted_bracket(perfil)</code> construye el bracket completo derivando todos los equipos eliminatorios de las predicciones de grupos. El módulo aplica S: la carga de BD, la lógica de terceros y la cascada del bracket son funciones separadas.</p>
 
 <h3>Flujo del algoritmo</h3>
 <div class="flow">
@@ -1201,47 +1261,31 @@ tabla = sorted(equipos.values(), key=<span class="kw">lambda</span> x: (-x[<span
   <div class="fs">Tercer Puesto + Final</div>
 </div>
 
-<h3>_clasificados_grupo(perfil, letra) → list[Pais]</h3>
-<p>Para cada grupo, simula la tabla de posiciones basada en las predicciones del usuario. Acumula pts/gd/gf/wins para cada equipo y retorna la lista ordenada [1ro, 2do, 3ro, 4to].</p>
+<h3>Estructura del módulo (S)</h3>
+<table class="sm">
+  <tr><th>Función</th><th>Responsabilidad única</th></tr>
+  <tr><td><code>_clasificados_grupo_auto(perfil, letra)</code></td><td>Calcula la tabla de posiciones predicha de un grupo desde las predicciones del usuario.</td></tr>
+  <tr><td><code>_clasificados_grupo(perfil, letra)</code></td><td>Devuelve la clasificación manual si existe, o llama a la auto. Punto de decisión manual/auto.</td></tr>
+  <tr><td><code>_tercero_stats(perfil, equipo, letra)</code></td><td>Extrae pts/gd/gf/wins del tercero de un grupo para comparación cross-group.</td></tr>
+  <tr><td><code>_label_to_team(label, clasificados, terceros_map, numero)</code></td><td>Resuelve una etiqueta de slot ("1ro Grupo A", "Mejor 3ro…") a un objeto Pais concreto.</td></tr>
+  <tr><td><code>_predict_outcome(local, visitante, pred)</code></td><td>Determina (ganador, perdedor) de un partido eliminatorio predicho. Devuelve (None, None) si falta info.</td></tr>
+  <tr><td><code>_cargar_fases_eliminatorias()</code></td><td>Solo hace los 6 queries de BD para cargar R32/R16/QF/SF/TP/FI. Sin lógica.</td></tr>
+  <tr><td><code>_resolver_terceros(perfil, clasificados)</code></td><td>Solo determina qué 8 terceros clasifican y a qué slot R32 va cada uno. Encapsula toda la lógica de terceros.</td></tr>
+  <tr><td><code>_construir_bracket(fases, clasificados, terceros_map, pred_map)</code></td><td>Lógica pura de cascada. Sin acceso a BD — recibe todo ya cargado.</td></tr>
+  <tr><td><code>get_predicted_bracket(perfil)</code></td><td>Orquestador público — 5 líneas que conectan las piezas anteriores.</td></tr>
+</table>
 
-<h3>_tercero_stats(perfil, equipo, letra) → dict</h3>
-<p>Extrae pts/gd/gf/wins del equipo en tercer lugar para comparación entre grupos (los criterios de selección de mejores terceros son cross-group).</p>
-
-<h3>_label_to_team(label, clasificados, terceros_map, numero) → Pais|None</h3>
-<p>Resuelve una etiqueta de slot a un equipo concreto:</p>
-<ul>
-  <li><code>"1ro Grupo A"</code> → <code>clasificados['A'][0]</code></li>
-  <li><code>"2do Grupo B"</code> → <code>clasificados['B'][1]</code></li>
-  <li><code>"Mejor 3ro X/Y/Z"</code> → <code>terceros_map[partido_numero]</code></li>
-</ul>
-
-<h3>_predict_outcome(local, visitante, pred) → (winner, loser)</h3>
-<p>Determina ganador y perdedor predicho de un partido eliminatorio. Si la predicción es empate, el ganador es <code>pred.clasificado_pred</code>. Si falta la predicción o el clasificado, retorna (None, None).</p>
-
-<h3>Construcción del bracket por fase</h3>
-<pre><code><span class="cm"># R32: equipos vienen de labels</span>
-<span class="kw">for</span> partido <span class="kw">in</span> r32:
-    local = _label_to_team(partido.label_local, ...)
-    vis   = _label_to_team(partido.label_visitante, ...)
-    teams[partido.id] = (local, vis)
-    winners[partido.id], losers[partido.id] = _predict_outcome(local, vis, pred)
-
-<span class="cm"># R16: ganadores de pares R32 (R32[0] vs R32[1], R32[2] vs R32[3], ...)</span>
-<span class="kw">for</span> i, partido <span class="kw">in</span> enumerate(r16):
-    local = winners.get(r32[i*<span class="num">2</span>].id)
-    vis   = winners.get(r32[i*<span class="num">2</span>+<span class="num">1</span>].id)
-    ...
-
-<span class="cm"># QF, SF: mismo patrón con la fase anterior</span>
-
-<span class="cm"># Tercer puesto: perdedores de las dos semifinales</span>
-teams[tp[<span class="num">0</span>].id] = (losers[sf[<span class="num">0</span>].id], losers[sf[<span class="num">1</span>].id])
-
-<span class="cm"># Final: ganadores de las dos semifinales</span>
-teams[fi[<span class="num">0</span>].id] = (winners[sf[<span class="num">0</span>].id], winners[sf[<span class="num">1</span>].id])</code></pre>
+<pre><code><span class="cm"># S: orquestador — cada línea delega a una función con responsabilidad única</span>
+<span class="kw">def</span> <span class="fn">get_predicted_bracket</span>(perfil):
+    clasificados = {letra: _clasificados_grupo(perfil, letra) <span class="kw">for</span> letra <span class="kw">in</span> GRUPOS_LETRAS}
+    terceros_map = _resolver_terceros(perfil, clasificados)   <span class="cm"># ← todo lo de terceros aquí</span>
+    fases        = _cargar_fases_eliminatorias()              <span class="cm"># ← toda la BD aquí</span>
+    pred_map     = { ... }                                    <span class="cm"># ← predicciones eliminatorias</span>
+    teams        = _construir_bracket(fases, clasificados, terceros_map, pred_map)  <span class="cm"># ← solo lógica</span>
+    <span class="kw">return</span> teams, pred_map, fases</code></pre>
 
 <div class="alert aw">
-  <strong>Dependencia:</strong> Si el usuario no tiene predicciones de grupos, <code>_clasificados_grupo</code> retorna una lista incompleta. Si no hay predicción para un partido eliminatorio, <code>_predict_outcome</code> retorna (None, None) y las fases siguientes muestran "TBD". El bracket es best-effort: muestra lo que puede calcular sin errores.
+  <strong>Best-effort:</strong> Si el usuario no tiene predicciones de grupos, <code>_clasificados_grupo</code> retorna lista incompleta. Si no hay predicción para un partido eliminatorio, <code>_predict_outcome</code> retorna (None, None) y las fases siguientes muestran "TBD". Nunca lanza excepciones por datos faltantes.
 </div>
 </section>
 
@@ -1501,6 +1545,62 @@ terceros_map = {
 </section>
 
 <!-- ════════════════════════════════════════════════════════════ -->
+<section id="solid">
+<h2>Principios SOLID aplicados</h2>
+<p>El código fue revisado y refactorizado para aplicar los principios SOLID donde son beneficiosos en el contexto de Django. Django usa el patrón Active Record (el modelo es el repositorio), lo que hace que algunos principios sean menos relevantes o directamente contraproducentes si se fuerzan.</p>
+
+<table>
+  <tr><th>Principio</th><th>Estado</th><th>Dónde aplica</th></tr>
+  <tr>
+    <td><strong>S — Single Responsibility</strong></td>
+    <td><span style="color:#155724;font-weight:700">✅ Aplicado</span></td>
+    <td>Cada función hace una sola cosa: <code>_ganador_real()</code> solo determina el ganador, <code>_guardar_puntos_predicciones()</code> solo escribe en BD, <code>_recalcular_totales()</code> solo suma puntos. En admin, <code>_fila_prediccion_html()</code> y <code>_tabla_predicciones_html()</code> generan HTML sin tocar la BD. En views, <code>_requiere_participante</code> centraliza el guard, <code>_guardar_predicciones_grupo()</code> y <code>_construir_standings_grupo()</code> encapsulan lógica puntual.</td>
+  </tr>
+  <tr>
+    <td><strong>O — Open/Closed</strong></td>
+    <td><span style="color:#155724;font-weight:700">✅ Aplicado</span></td>
+    <td>El módulo de scoring usa el patrón Strategy: <code>EstrategiaGrupo</code> y <code>EstrategiaEliminatoria</code>. Para agregar una nueva regla de puntuación (ej. un formato playoff diferente) se crea una nueva clase sin modificar el código existente. <code>_get_estrategia(fase)</code> actúa como factory.</td>
+  </tr>
+  <tr>
+    <td><strong>L — Liskov Substitution</strong></td>
+    <td><span style="color:#155724;font-weight:700">✅ Aplicado</span></td>
+    <td>Ambas estrategias de scoring (<code>EstrategiaGrupo</code>, <code>EstrategiaEliminatoria</code>) tienen la misma firma de método <code>calcular(gl_p, gv_p, gl_r, gv_r, **kwargs)</code>. Son intercambiables sin que el orquestador sepa cuál está usando.</td>
+  </tr>
+  <tr>
+    <td><strong>I — Interface Segregation</strong></td>
+    <td><span style="color:#856404;font-weight:700">⚠️ Parcialmente</span></td>
+    <td>Python no tiene interfaces formales. El contrato implícito de <code>calcular()</code> en las estrategias cumple el espíritu del principio. No se fuerza una clase base abstracta porque sería burocracia sin beneficio real en este tamaño de proyecto.</td>
+  </tr>
+  <tr>
+    <td><strong>D — Dependency Inversion</strong></td>
+    <td><span style="color:#721c24;font-weight:700">❌ No aplica</span></td>
+    <td>Django usa Active Record por diseño: el modelo es su propio repositorio. Añadir una capa de repositorios abstracta rompería la ergonomía del ORM sin ningún beneficio práctico. Es una decisión consciente de no aplicarlo, no un olvido.</td>
+  </tr>
+</table>
+
+<h3>Antes vs después del refactoring</h3>
+<table>
+  <tr><th>Archivo</th><th>Qué cambió</th></tr>
+  <tr>
+    <td><code>core/scoring.py</code></td>
+    <td>La función monolítica se separó en: <code>_resultado()</code>, <code>EstrategiaGrupo</code>, <code>EstrategiaEliminatoria</code>, <code>_get_estrategia()</code>, <code>_ganador_real()</code>, <code>_ganador_pred()</code>, <code>_calcular_puntos_pred()</code>, <code>_guardar_puntos_predicciones()</code>, <code>_recalcular_totales()</code>. El orquestador público <code>calcular_puntos_partido()</code> quedó en 8 líneas.</td>
+  </tr>
+  <tr>
+    <td><code>core/bracket.py</code></td>
+    <td>La función <code>get_predicted_bracket()</code> se separó en: <code>_cargar_fases_eliminatorias()</code> (solo BD), <code>_resolver_terceros()</code> (lógica de terceros), <code>_construir_bracket()</code> (cascada pura sin BD). El orquestador quedó en 5 líneas.</td>
+  </tr>
+  <tr>
+    <td><code>core/admin.py</code></td>
+    <td>El método <code>tabla_predicciones</code> de <code>PerfilAdmin</code> generaba HTML mezclado con la consulta. Se extrajo <code>_fila_prediccion_html(p)</code> y <code>_tabla_predicciones_html(rows)</code> como funciones de módulo. El método queda en 2 líneas.</td>
+  </tr>
+  <tr>
+    <td><code>core/views.py</code></td>
+    <td>6 vistas repetían el mismo bloque de 6 líneas (guard staff + perfil). Se creó el decorator <code>_requiere_participante</code> que inyecta <code>perfil</code> como kwarg. Se extrajeron <code>_guardar_predicciones_grupo()</code>, <code>_guardar_predicciones_eliminatorias()</code> y <code>_construir_standings_grupo()</code>.</td>
+  </tr>
+</table>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════ -->
 <section id="admin">
 <h2>Panel de administración — workflows</h2>
 
@@ -1575,8 +1675,10 @@ terceros_map = {
 <h3>PerfilAdmin</h3>
 <ul>
   <li>Completamente de solo lectura: <code>has_add/delete/change_permission</code> retornan <code>False</code></li>
-  <li><code>list_display</code>: nombre, email, puntos (badge verde), pred grupos, pred elim</li>
-  <li><code>tabla_predicciones</code>: método que genera HTML de tabla con todas las predicciones del participante incluyendo resultado real y puntos. Usa <code>mark_safe()</code> para inyectar el HTML seguro.</li>
+  <li><code>list_display</code>: nombre, email, puntos (badge verde), pred grupos</li>
+  <li><code>tabla_predicciones</code>: campo readonly que muestra el historial completo de predicciones con resultado real y puntos. Llama <code>_tabla_predicciones_html(rows)</code> y retorna el resultado con <code>mark_safe()</code>.</li>
+  <li><code>_fila_prediccion_html(p)</code>: función de módulo (fuera de la clase) que genera el HTML de una fila <code>&lt;tr&gt;</code> con colores según puntos (verde=5, amarillo=2, rojo=0). Sin acceso a BD.</li>
+  <li><code>_tabla_predicciones_html(rows)</code>: función de módulo que arma el <code>&lt;table&gt;</code> completo a partir de las filas pre-cargadas. Sin acceso a BD.</li>
 </ul>
 </section>
 
@@ -1592,7 +1694,7 @@ terceros_map = {
   <tr><td>Crear superusuario admin</td><td><code>python manage.py createsuperuser</code></td></tr>
   <tr><td>Shell Python interactivo con ORM</td><td><code>python manage.py shell</code></td></tr>
   <tr><td>Ver todas las migraciones</td><td><code>python manage.py showmigrations</code></td></tr>
-  <tr><td>Conectar a PostgreSQL por terminal</td><td><code>psql -U postgres -h 127.0.0.1 -d pollaf_db</code></td></tr>
+  <tr><td>Conectar a PostgreSQL por terminal</td><td><code>psql -U postgres -h 127.0.0.1 -d pollaf_santiago</code></td></tr>
   <tr><td>Listar todos los partidos (SQL)</td><td><code>SELECT numero, fase, label_local, label_visitante FROM core_partido ORDER BY numero;</code></td></tr>
   <tr><td>Ver ranking (SQL)</td><td><code>SELECT nombre_completo, puntos_totales FROM core_perfilusuario ORDER BY puntos_totales DESC;</code></td></tr>
   <tr><td>Matar procesos Python viejos (Linux)</td><td><code>pkill -f "python manage.py"</code></td></tr>
@@ -1608,7 +1710,7 @@ terceros_map = {
 DATABASES = {
     <span class="str">'default'</span>: {
         <span class="str">'ENGINE'</span>: <span class="str">'django.db.backends.postgresql'</span>,
-        <span class="str">'NAME'</span>:   <span class="str">'pollaf_db'</span>,
+        <span class="str">'NAME'</span>:   <span class="str">'pollaf_santiago'</span>,
         <span class="str">'USER'</span>:   <span class="str">'postgres'</span>,
         <span class="str">'PASSWORD'</span>: <span class="str">'admin'</span>,
         <span class="str">'HOST'</span>:   <span class="str">'127.0.0.1'</span>,
@@ -1628,8 +1730,8 @@ INSTALLED_APPS = [
 
 LOGIN_URL = <span class="str">'/login/'</span>              <span class="cm"># redirección si @login_required falla</span>
 DEFAULT_AUTO_FIELD = <span class="str">'django.db.models.BigAutoField'</span>
-LANGUAGE_CODE = <span class="str">'es-co'</span>
-TIME_ZONE = <span class="str">'America/Bogota'</span>
+LANGUAGE_CODE = <span class="str">'en-us'</span>
+TIME_ZONE = <span class="str">'UTC'</span>
 USE_TZ = <span class="kw">True</span></code></pre>
 
 <h3>CSRF</h3>
@@ -1644,12 +1746,13 @@ USE_TZ = <span class="kw">True</span></code></pre>
 <h2>Estado actual del proyecto</h2>
 <table>
   <tr><th>Módulo / Feature</th><th>Estado</th></tr>
-  <tr><td>Modelos (Pais, Partido, PerfilUsuario, Prediccion, TorneoConfig)</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Modelos (Pais, Partido, PerfilUsuario, Prediccion, TorneoConfig, ClasificacionManualGrupo, TerceroManual)</td><td><span class="badge bg">Completo</span></td></tr>
   <tr><td>48 países y 104 partidos cargados en PostgreSQL</td><td><span class="badge bg">Completo</span></td></tr>
   <tr><td>Registro con validación @usa.edu.co</td><td><span class="badge bg">Completo</span></td></tr>
   <tr><td>Login / Logout con separación admin vs participante</td><td><span class="badge bg">Completo</span></td></tr>
   <tr><td>Predicciones de grupos — tabs A-L con flags</td><td><span class="badge bg">Completo</span></td></tr>
   <tr><td>Botón "Datos de prueba" (72 predicciones aleatorias)</td><td><span class="badge bg">Completo</span></td></tr>
+  <tr><td>Clasificación manual de grupos y ranking de terceros por usuario</td><td><span class="badge bg">Completo</span></td></tr>
   <tr><td>Bracket eliminatorio en cascada desde predicciones de grupos</td><td><span class="badge bg">Completo</span></td></tr>
   <tr><td>Predicciones eliminatorias con clasificado en caso de empate</td><td><span class="badge bg">Completo</span></td></tr>
   <tr><td>Tabla de 495 combinaciones de mejores terceros FIFA</td><td><span class="badge bg">Completo</span></td></tr>
@@ -1667,7 +1770,7 @@ USE_TZ = <span class="kw">True</span></code></pre>
 <hr>
 <p style="font-size:.83rem;color:#999;text-align:center;">
   PollaF — Documentación técnica completa — Django 6.0.4 · PostgreSQL 16 · Python 3.12<br>
-  Universidad de América · predicciones@usa.edu.co
+  Universidad Checho Bosques · predicciones@usa.edu.co
 </p>
 </section>
 

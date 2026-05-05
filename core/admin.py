@@ -14,6 +14,42 @@ admin.site.site_title  = 'PollaF Admin'
 admin.site.index_title = 'Panel de administración'
 
 
+# ── S: generación HTML separada de la clase admin ───────────────────
+
+def _fila_prediccion_html(p):
+    """S: generates one prediction row HTML. No DB access."""
+    local = p.partido.equipo_local.nombre if p.partido.equipo_local else p.partido.label_local
+    vis   = p.partido.equipo_visitante.nombre if p.partido.equipo_visitante else p.partido.label_visitante
+    real  = (f"{p.partido.goles_local_real} – {p.partido.goles_visitante_real}"
+             if p.partido.goles_local_real is not None else '—')
+    pts   = p.puntos if p.puntos is not None else '—'
+    bg    = '#d4edda' if p.puntos == 5 else '#fff3cd' if p.puntos == 2 else '#f8d7da' if p.puntos == 0 else 'transparent'
+    color = '#155724' if p.puntos == 5 else '#856404' if p.puntos == 2 else '#721c24' if p.puntos == 0 else '#888'
+    return (
+        f'<tr style="border-bottom:1px solid #f0f0f0">'
+        f'<td style="padding:5px 10px">{local} vs {vis}</td>'
+        f'<td style="padding:5px 10px;text-align:center;font-weight:700">{p.goles_local} – {p.goles_visitante}</td>'
+        f'<td style="padding:5px 10px;text-align:center">{real}</td>'
+        f'<td style="padding:5px 10px;text-align:center;font-weight:800;'
+        f'color:{color};background:{bg};border-radius:4px">{pts}</td>'
+        f'</tr>'
+    )
+
+
+def _tabla_predicciones_html(rows):
+    """S: assembles the full predictions table HTML from pre-fetched rows."""
+    header = (
+        '<table style="width:100%;border-collapse:collapse;font-size:.85rem">'
+        '<thead><tr style="background:#f0faf4">'
+        '<th style="padding:6px 10px;text-align:left">Partido</th>'
+        '<th style="padding:6px 10px;text-align:center">Mi predicción</th>'
+        '<th style="padding:6px 10px;text-align:center">Resultado real</th>'
+        '<th style="padding:6px 10px;text-align:center">Puntos</th>'
+        '</tr></thead><tbody>'
+    )
+    return header + ''.join(_fila_prediccion_html(p) for p in rows) + '</tbody></table>'
+
+
 # ── Países: solo lectura ─────────────────────────────────────────────
 @admin.register(Pais)
 class PaisAdmin(admin.ModelAdmin):
@@ -157,11 +193,11 @@ class PartidoAdmin(admin.ModelAdmin):
 # ── Participantes ────────────────────────────────────────────────────
 @admin.register(PerfilUsuario)
 class PerfilAdmin(admin.ModelAdmin):
-    list_display  = ['nombre_completo', 'email_display', 'puntos_badge', 'pred_grupos']
-    ordering      = ['-puntos_totales']
-    search_fields = ['nombre_completo', 'user__email']
+    list_display    = ['nombre_completo', 'email_display', 'puntos_badge', 'pred_grupos']
+    ordering        = ['-puntos_totales']
+    search_fields   = ['nombre_completo', 'user__email']
     readonly_fields = ['nombre_completo', 'user', 'puntos_totales', 'tabla_predicciones']
-    fields = ['nombre_completo', 'puntos_totales', 'tabla_predicciones']
+    fields          = ['nombre_completo', 'puntos_totales', 'tabla_predicciones']
 
     def email_display(self, obj): return obj.user.email
     email_display.short_description = 'Correo'
@@ -181,30 +217,7 @@ class PerfilAdmin(admin.ModelAdmin):
         rows = (obj.predicciones
                 .select_related('partido', 'partido__equipo_local', 'partido__equipo_visitante')
                 .order_by('partido__numero'))
-        html = ('<table style="width:100%;border-collapse:collapse;font-size:.85rem">'
-                '<thead><tr style="background:#f0faf4">'
-                '<th style="padding:6px 10px;text-align:left">Partido</th>'
-                '<th style="padding:6px 10px;text-align:center">Mi predicción</th>'
-                '<th style="padding:6px 10px;text-align:center">Resultado real</th>'
-                '<th style="padding:6px 10px;text-align:center">Puntos</th>'
-                '</tr></thead><tbody>')
-        for p in rows:
-            local = p.partido.equipo_local.nombre if p.partido.equipo_local else p.partido.label_local
-            vis   = p.partido.equipo_visitante.nombre if p.partido.equipo_visitante else p.partido.label_visitante
-            real  = (f"{p.partido.goles_local_real} – {p.partido.goles_visitante_real}"
-                     if p.partido.goles_local_real is not None else '—')
-            pts = p.puntos if p.puntos is not None else '—'
-            bg    = '#d4edda' if p.puntos == 5 else '#fff3cd' if p.puntos == 2 else '#f8d7da' if p.puntos == 0 else 'transparent'
-            color = '#155724' if p.puntos == 5 else '#856404' if p.puntos == 2 else '#721c24' if p.puntos == 0 else '#888'
-            html += (f'<tr style="border-bottom:1px solid #f0f0f0">'
-                     f'<td style="padding:5px 10px">{local} vs {vis}</td>'
-                     f'<td style="padding:5px 10px;text-align:center;font-weight:700">{p.goles_local} – {p.goles_visitante}</td>'
-                     f'<td style="padding:5px 10px;text-align:center">{real}</td>'
-                     f'<td style="padding:5px 10px;text-align:center;font-weight:800;'
-                     f'color:{color};background:{bg};border-radius:4px">{pts}</td>'
-                     f'</tr>')
-        html += '</tbody></table>'
-        return mark_safe(html)
+        return mark_safe(_tabla_predicciones_html(rows))
     tabla_predicciones.short_description = 'Historial de predicciones'
 
     def has_add_permission(self, request): return False

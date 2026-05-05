@@ -8,6 +8,8 @@ from .models import Partido, Prediccion, ClasificacionManualGrupo, TerceroManual
 GRUPOS_LETRAS = list('ABCDEFGHIJKL')
 
 
+# ── Lógica de grupos ─────────────────────────────────────────────────
+
 def _clasificados_grupo_auto(perfil, letra):
     """Returns list of Pais sorted by predicted standing [1st, 2nd, 3rd, 4th]."""
     partidos = list(
@@ -59,10 +61,8 @@ def _clasificados_grupo(perfil, letra):
         .select_related('primero', 'segundo', 'tercero', 'cuarto')
         .first()
     )
-
     if manual:
         return [manual.primero, manual.segundo, manual.tercero, manual.cuarto]
-
     return _clasificados_grupo_auto(perfil, letra)
 
 
@@ -87,14 +87,14 @@ def _tercero_stats(perfil, equipo, letra):
     return {'pts': pts, 'gd': gd, 'gf': gf, 'wins': wins}
 
 
+# ── Helpers de bracket ───────────────────────────────────────────────
+
 def _label_to_team(label, clasificados, terceros_map, partido_numero):
     if label.startswith('1ro Grupo '):
-        letra = label[-1]
-        equipos = clasificados.get(letra, [])
+        equipos = clasificados.get(label[-1], [])
         return equipos[0] if equipos else None
     if label.startswith('2do Grupo '):
-        letra = label[-1]
-        equipos = clasificados.get(letra, [])
+        equipos = clasificados.get(label[-1], [])
         return equipos[1] if len(equipos) >= 2 else None
     if label.startswith('Mejor 3ro'):
         return terceros_map.get(partido_numero)
@@ -102,7 +102,7 @@ def _label_to_team(label, clasificados, terceros_map, partido_numero):
 
 
 def _predict_outcome(local, visitante, pred):
-    """Returns (winner, loser). None if prediction missing or draw with no clasificado."""
+    """Returns (winner, loser). (None, None) if prediction missing or unresolvable draw."""
     if not pred or local is None or visitante is None:
         return None, None
     gl, gv = pred.goles_local, pred.goles_visitante
@@ -110,7 +110,6 @@ def _predict_outcome(local, visitante, pred):
         return local, visitante
     if gv > gl:
         return visitante, local
-    # Draw in elimination: winner is quien clasificó
     winner = pred.clasificado_pred
     if winner is None:
         return None, None
@@ -118,83 +117,69 @@ def _predict_outcome(local, visitante, pred):
     return winner, loser
 
 
-def get_predicted_bracket(perfil):
-    """
-    Computes the full predicted bracket from user predictions.
+# ── S: carga de BD separada de la lógica ────────────────────────────
 
-    Returns:
-        teams: dict {partido_id: (local_pais|None, visitante_pais|None)}
-        pred_map: dict {partido_id: Prediccion}
-        fases: dict of phase keys → list of Partido
-    """
+def _cargar_fases_eliminatorias():
+    """S: only fetches elimination matches from DB."""
+    return {
+        'r32': list(Partido.objects.filter(fase='R32').order_by('numero')),
+        'r16': list(Partido.objects.filter(fase='R16').order_by('numero')),
+        'qf':  list(Partido.objects.filter(fase='QF').order_by('numero')),
+        'sf':  list(Partido.objects.filter(fase='SF').order_by('numero')),
+        'tp':  list(Partido.objects.filter(fase='TP').order_by('numero')),
+        'fi':  list(Partido.objects.filter(fase='FI').order_by('numero')),
+    }
+
+
+def _resolver_terceros(perfil, clasificados):
+    """S: only resolves which 8 third-place teams qualify and their R32 slot assignment."""
     from .terceros import asignar_terceros
 
-    # ── Group standings ──────────────────────────────────────────────
-    clasificados = {}
-    for letra in GRUPOS_LETRAS:
-        clasificados[letra] = _clasificados_grupo(perfil, letra)
-
-    # ── Best 8 third-place teams ─────────────────────────────────────
     terceros_info = []
     for letra in GRUPOS_LETRAS:
         equipos = clasificados.get(letra, [])
         if len(equipos) >= 3:
             equipo = equipos[2]
-            stats = _tercero_stats(perfil, equipo, letra)
+            stats  = _tercero_stats(perfil, equipo, letra)
             terceros_info.append({'pais': equipo, 'grupo': letra, **stats})
 
     terceros_manuales = list(
-    TerceroManual.objects
+        TerceroManual.objects
         .filter(usuario=perfil)
         .select_related('pais')
         .order_by('posicion')
     )
 
     if terceros_manuales:
-        mejores_8 = [
-            {'pais': t.pais, 'grupo': t.grupo}
-            for t in terceros_manuales[:8]
-        ]
+        mejores_8 = [{'pais': t.pais, 'grupo': t.grupo} for t in terceros_manuales[:8]]
     else:
         terceros_info.sort(key=lambda x: (-x['pts'], -x['gd'], -x['gf'], -x['wins']))
         mejores_8 = terceros_info[:8]
 
-    grupos_8 = {t['grupo'] for t in mejores_8}
+    grupos_8      = {t['grupo'] for t in mejores_8}
     terceros_pais = {t['grupo']: t['pais'] for t in mejores_8}
+    asignacion    = asignar_terceros(grupos_8)
+    return {num: terceros_pais[letra] for num, letra in asignacion.items() if letra in terceros_pais}
 
-    # Assign to R32 slots
-    asignacion = asignar_terceros(grupos_8)  # {partido_num: letra_grupo}
-    terceros_map = {num: terceros_pais[letra] for num, letra in asignacion.items() if letra in terceros_pais}
 
-    # ── Load all elimination matches ─────────────────────────────────
-    r32 = list(Partido.objects.filter(fase='R32').order_by('numero'))
-    r16 = list(Partido.objects.filter(fase='R16').order_by('numero'))
-    qf  = list(Partido.objects.filter(fase='QF').order_by('numero'))
-    sf  = list(Partido.objects.filter(fase='SF').order_by('numero'))
-    tp  = list(Partido.objects.filter(fase='TP').order_by('numero'))
-    fi  = list(Partido.objects.filter(fase='FI').order_by('numero'))
+def _construir_bracket(fases, clasificados, terceros_map, pred_map):
+    """S: pure bracket cascade logic. No DB access."""
+    r32, r16 = fases['r32'], fases['r16']
+    qf,  sf  = fases['qf'],  fases['sf']
+    tp,  fi  = fases['tp'],  fases['fi']
 
-    all_elim = r32 + r16 + qf + sf + tp + fi
-    pred_map = {
-        p.partido_id: p
-        for p in Prediccion.objects.filter(usuario=perfil, partido__in=all_elim)
-        .select_related('clasificado_pred')
-    }
+    teams   = {}
+    winners = {}
+    losers  = {}
 
-    teams   = {}  # partido_id -> (local, visitante)
-    winners = {}  # partido_id -> winner pais
-    losers  = {}  # partido_id -> loser pais
-
-    # R32
     for partido in r32:
-        local = _label_to_team(partido.label_local, clasificados, terceros_map, partido.numero)
+        local = _label_to_team(partido.label_local,    clasificados, terceros_map, partido.numero)
         vis   = _label_to_team(partido.label_visitante, clasificados, terceros_map, partido.numero)
         teams[partido.id] = (local, vis)
         w, l = _predict_outcome(local, vis, pred_map.get(partido.id))
         winners[partido.id] = w
         losers[partido.id]  = l
 
-    # R16: winner of R32[0] vs winner of R32[1], etc.
     for i, partido in enumerate(r16):
         local = winners.get(r32[i * 2].id)     if i * 2     < len(r32) else None
         vis   = winners.get(r32[i * 2 + 1].id) if i * 2 + 1 < len(r32) else None
@@ -203,7 +188,6 @@ def get_predicted_bracket(perfil):
         winners[partido.id] = w
         losers[partido.id]  = l
 
-    # QF: winner of R16 pairs
     for i, partido in enumerate(qf):
         local = winners.get(r16[i * 2].id)     if i * 2     < len(r16) else None
         vis   = winners.get(r16[i * 2 + 1].id) if i * 2 + 1 < len(r16) else None
@@ -212,7 +196,6 @@ def get_predicted_bracket(perfil):
         winners[partido.id] = w
         losers[partido.id]  = l
 
-    # SF: winner of QF pairs
     for i, partido in enumerate(sf):
         local = winners.get(qf[i * 2].id)     if i * 2     < len(qf) else None
         vis   = winners.get(qf[i * 2 + 1].id) if i * 2 + 1 < len(qf) else None
@@ -221,17 +204,38 @@ def get_predicted_bracket(perfil):
         winners[partido.id] = w
         losers[partido.id]  = l
 
-    # Tercer puesto: SF losers
     if tp and len(sf) >= 2:
-        local = losers.get(sf[0].id)
-        vis   = losers.get(sf[1].id)
-        teams[tp[0].id] = (local, vis)
+        teams[tp[0].id] = (losers.get(sf[0].id), losers.get(sf[1].id))
 
-    # Final: SF winners
     if fi and len(sf) >= 2:
-        local = winners.get(sf[0].id)
-        vis   = winners.get(sf[1].id)
-        teams[fi[0].id] = (local, vis)
+        teams[fi[0].id] = (winners.get(sf[0].id), winners.get(sf[1].id))
 
-    fases = {'r32': r32, 'r16': r16, 'qf': qf, 'sf': sf, 'tp': tp, 'fi': fi}
+    return teams
+
+
+# ── Orquestador público ───────────────────────────────────────────────
+
+def get_predicted_bracket(perfil):
+    """
+    Computes the full predicted bracket from user predictions.
+
+    Returns:
+        teams:    dict {partido_id: (local_pais|None, visitante_pais|None)}
+        pred_map: dict {partido_id: Prediccion}
+        fases:    dict of phase keys → list of Partido
+    """
+    clasificados = {letra: _clasificados_grupo(perfil, letra) for letra in GRUPOS_LETRAS}
+    terceros_map = _resolver_terceros(perfil, clasificados)
+    fases        = _cargar_fases_eliminatorias()
+
+    all_elim = (fases['r32'] + fases['r16'] + fases['qf'] +
+                fases['sf'] + fases['tp']  + fases['fi'])
+    pred_map = {
+        p.partido_id: p
+        for p in Prediccion.objects
+        .filter(usuario=perfil, partido__in=all_elim)
+        .select_related('clasificado_pred')
+    }
+
+    teams = _construir_bracket(fases, clasificados, terceros_map, pred_map)
     return teams, pred_map, fases
